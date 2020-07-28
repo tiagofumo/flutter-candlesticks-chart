@@ -1,0 +1,20 @@
+name: flutter_candlesticks_chart
+description: Flutter candlesticks chart widget.
+version: 0.1.0
+author: Tiago Mendonça <tiagofumo@gmail.com>
+homepage: https://github.com/tiagofumo/flutter-candlesticks-chart
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^0.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
