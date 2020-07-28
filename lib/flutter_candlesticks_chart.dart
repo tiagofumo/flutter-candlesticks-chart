@@ -135,10 +135,6 @@ class _CandleStickChartState extends State<CandleStickChart> {
   final List<_ChartPointMapping> pointsMappingX = List();
   final List<_ChartPointMapping> pointsMappingY = List();
 
-  final List quoteGridLines = List();
-  final List volumeGridLines = List();
-  final List verticalTimeLines = List();
-
   double _cursorX = -1;
   double _cursorY = -1;
   double _cursorYPrice = 0;
