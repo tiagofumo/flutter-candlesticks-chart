@@ -491,6 +491,7 @@ class _CandleStickChartPainter extends CustomPainter {
 
     double width = size.width;
     final double height = size.height * (1 - volumeProp);
+    double volumeGridLineStartY = height + volumeSectionOffset;
 
     Paint gridLinePaint = Paint()
       ..color = gridLineColor
@@ -641,10 +642,17 @@ class _CandleStickChartPainter extends CustomPainter {
             ),
           );
           var lineX = dx + rectWidth / 2 + lineWidth;
+          var gridLineLabelPaint = Paint()..color = gridLineLabelColor;
           canvas.drawLine(
             Offset(lineX, 0),
             Offset(lineX, height),
-            Paint()..color = gridLineLabelColor
+            gridLineLabelPaint
+          );
+
+          canvas.drawLine(
+            Offset(lineX, volumeGridLineStartY),
+            Offset(lineX, size.height),
+            gridLineLabelPaint
           );
           i += indexDist;
           n++;
