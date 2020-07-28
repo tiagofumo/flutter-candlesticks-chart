@@ -144,6 +144,14 @@ class _CandleStickChartState extends State<CandleStickChart> {
   double _max = -double.infinity;
   double _maxVolume = -double.infinity;
 
+  final double valueLabelWidth = 60.0;
+  final double valueLabelFontSize = 10.0;
+  final double valueLabelHeight = 20.0; // this must be valueLabelFontSize*2
+
+  final double xAxisLabelWidth = 60;
+  final double xAxisLabelHeight = 20;
+
+
   void clearCursor() {
     setState(() {
       this._cursorX = -1;
@@ -185,6 +193,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
     // update x cursor
     var el = pointsMappingX.elementAt(i);
     var widgetHeight = context.size.height;
+    var cursorMaxX = context.size.width - valueLabelWidth;
     var myYPosition =
         (position.dy - widgetHeight + (widgetHeight * widget.volumeProp)) * -1;
     myYPosition += widget.cursorOffset.dy;
@@ -194,7 +203,8 @@ class _CandleStickChartState extends State<CandleStickChart> {
     var positionPrice = (((_max - _min) * myYPosition) / chartHeight) + _min;
 
     if (position.dy - widget.cursorOffset.dy > chartHeight ||
-          position.dy - widget.cursorOffset.dy < 0) {
+          position.dy - widget.cursorOffset.dy < 0 ||
+          position.dx - widget.cursorOffset.dx > cursorMaxX) {
       clearCursor();
       return;
     }
@@ -310,6 +320,11 @@ class _CandleStickChartState extends State<CandleStickChart> {
             fullscreenGridLine: widget.fullscreenGridLine,
             showXAxisLabels: widget.showXAxisLabel,
             xAxisLabelFormatFn: widget.xAxisLabelFormatFn,
+            valueLabelWidth: valueLabelWidth,
+            valueLabelHeight: valueLabelHeight,
+            valueLabelFontSize: valueLabelFontSize,
+            xAxisLabelWidth: xAxisLabelWidth,
+            xAxisLabelHeight: xAxisLabelHeight,
           ),
         ),
       ),
@@ -356,6 +371,11 @@ class _CandleStickChartPainter extends CustomPainter {
     this.cursorXTime = 0,
     this.fullscreenGridLine = false,
     this.showXAxisLabels = false,
+    @required this.valueLabelWidth,
+    @required this.valueLabelFontSize,
+    @required this.valueLabelHeight,
+    @required this.xAxisLabelWidth,
+    @required this.xAxisLabelHeight,
   });
 
   final List<CandleStickChartData> data;
@@ -388,13 +408,12 @@ class _CandleStickChartPainter extends CustomPainter {
   final bool cursorLineDashed;
   final bool formatValueLabelWithK;
 
-  // final double valueLabelWidth = 85.0;
-  final double valueLabelWidth = 60.0;
-  final double valueLabelFontSize = 10.0;
-  final double valueLabelHeight = 20.0; // this must be valueLabelFontSize*2
+  final double valueLabelWidth;
+  final double valueLabelFontSize;
+  final double valueLabelHeight;
 
-  final double xAxisLabelWidth = 60;
-  final double xAxisLabelHeight = 20;
+  final double xAxisLabelWidth;
+  final double xAxisLabelHeight;
 
   final FormatFn formatFn;
   final XAxisLabelFormatFn xAxisLabelFormatFn;
