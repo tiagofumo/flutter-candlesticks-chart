@@ -891,12 +891,14 @@ class _CandleStickChartPainter extends CustomPainter {
       var close = infoBoxLayout.formatValuesFn(selectedData.close);
       var high = infoBoxLayout.formatValuesFn(selectedData.high);
       var low = infoBoxLayout.formatValuesFn(selectedData.low);
+      var volume = infoBoxLayout.formatValuesFn(selectedData.volume);
       String infoBoxText = [
         _timeParse(this.cursorXTime, false),
         "Open: $open",
         "Close: $close",
         "High: $high",
         "Low: $low",
+        "Volume: $volume",
       ].join('\n');
       var infoBoxTextPainter = TextPainter(
         textDirection: TextDirection.ltr,
