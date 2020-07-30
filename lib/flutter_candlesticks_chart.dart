@@ -53,8 +53,6 @@ class CandleStickChart extends StatefulWidget {
     }
   }
 
-  /// OHLCV data to graph  /// List of Maps containing open, high, low, close and volumeto
-  /// Example: [["open" : 40.0, "high" : 75.0, "low" : 25.0, "close" : 50.0, "volumeto" : 5000.0}, {...}]
   // final List data;
   final List<CandleStickChartData> data;
 
