@@ -69,6 +69,7 @@ class MyApp extends StatelessWidget {
                 cursorLabelBoxColor: Colors.green,
                 showXAxisLabel: true,
                 formatValueLabelWithK: true,
+                xAxisLabelCount: 4,
                 lines: [
                   LineValue(
                     value: lastData.close,
