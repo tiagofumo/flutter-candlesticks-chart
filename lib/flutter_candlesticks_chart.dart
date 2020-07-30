@@ -931,7 +931,7 @@ class _CandleStickChartPainter extends CustomPainter {
       if (this.cursorY > infoBoxHeightAndMargin + infoBoxMargin) {
         infoBoxTop = this.cursorY - infoBoxHeightAndMargin;
       } else {
-        infoBoxTop = this.cursorY + infoBoxMargin;
+        infoBoxTop = infoBoxMargin;
       }
       infoBoxPath.moveTo(infoBoxLeft, infoBoxTop);
       infoBoxPath.addRect(
