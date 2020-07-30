@@ -146,6 +146,8 @@ class _CandleStickChartState extends State<CandleStickChart> {
   double _cursorYPrice = 0;
   int _cursorXTime = 0;
 
+  CandleStickChartData _selectedData;
+
   double _min = double.infinity;
   double _max = -double.infinity;
   double _maxVolume = -double.infinity;
@@ -229,6 +231,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
       this._cursorY -= widget.cursorOffset.dy;
       _cursorYPrice = widget.data[i].selectedPrice;
       _cursorXTime = widget.data[i].dateTime.millisecondsSinceEpoch;
+      _selectedData = widget.data[i];
     });
 
     // invoke onSelect with new values
@@ -327,6 +330,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
             showXAxisLabels: widget.showXAxisLabel,
             xAxisLabelFormatFn: widget.xAxisLabelFormatFn,
             infoBoxLayout: widget.infoBoxLayout,
+            selectedData: _selectedData,
             valueLabelWidth: valueLabelWidth,
             valueLabelHeight: valueLabelHeight,
             valueLabelFontSize: valueLabelFontSize,
@@ -377,6 +381,7 @@ class _CandleStickChartPainter extends CustomPainter {
     this.cursorY = -1,
     this.cursorYPrice = 0,
     this.cursorXTime = 0,
+    this.selectedData,
     this.fullscreenGridLine = false,
     this.showXAxisLabels = false,
     @required this.valueLabelWidth,
@@ -429,6 +434,8 @@ class _CandleStickChartPainter extends CustomPainter {
 
   final bool fullscreenGridLine;
   final bool showXAxisLabels;
+
+  final CandleStickChartData selectedData;
 
   final ChartInfoBoxLayout infoBoxLayout;
 
@@ -880,8 +887,34 @@ class _CandleStickChartPainter extends CustomPainter {
       
       // TODO: Draw cursor info box
       double infoBoxMargin = 1;
-      double infoBoxWidth = valueLabelWidth * 1.5;
-      double infoBoxHeight = valueLabelHeight * 3;
+      var infoBoxBackgroundColor = infoBoxLayout.backgroundColor
+        .withOpacity(infoBoxLayout.backgroundOpacity);
+      var open = infoBoxLayout.formatValuesFn(selectedData.open);
+      var close = infoBoxLayout.formatValuesFn(selectedData.close);
+      var high = infoBoxLayout.formatValuesFn(selectedData.high);
+      var low = infoBoxLayout.formatValuesFn(selectedData.low);
+      String infoBoxText = [
+        _timeParse(this.cursorXTime, false),
+        "Open: $open",
+        "Close: $close",
+        "High: $high",
+        "Low: $low",
+      ].join('\n');
+      var infoBoxTextPainter = TextPainter(
+        textDirection: TextDirection.ltr,
+        text: TextSpan(
+          text: infoBoxText,
+          style: TextStyle(
+            color: infoBoxLayout.textColor,
+            fontWeight: infoBoxLayout.fontWeight,
+          ),
+        ),
+      )..layout(
+        minWidth: valueLabelWidth,
+        maxWidth: valueLabelWidth*2,
+      );
+      var infoBoxWidth = infoBoxTextPainter.width;
+      var infoBoxHeight = infoBoxTextPainter.height;
       var infoBoxWidthAndMargin = infoBoxWidth + infoBoxMargin;
       var infoBoxHeightAndMargin = infoBoxHeight + infoBoxMargin;
       var infoBoxPath = Path();
@@ -905,25 +938,12 @@ class _CandleStickChartPainter extends CustomPainter {
           infoBoxHeight
         )
       );
-      canvas.drawPath(infoBoxPath, Paint()..color = Colors.green.withOpacity(0.5));
-      String infoBoxText = [
-        _timeParse(this.cursorXTime, false),
-        'Open: 100',
-        'Close: 100',
-        'High: 100',
-        'Low: 100',
-      ].join('\n');
-      // draw infobox date
-      var dateParagraph = _getPragraphFromString(
-        text: infoBoxText,
-        color: this.cursorTextColor,
-        textAlign: TextAlign.start,
-        paragraphConstraints: ParagraphConstraints(
-          width: infoBoxWidth,
-        )
+      canvas.drawPath(
+        infoBoxPath,
+        Paint()..color = infoBoxBackgroundColor
       );
-      canvas.drawParagraph(
-        dateParagraph,
+      infoBoxTextPainter.paint(
+        canvas,
         Offset(
           infoBoxLeft + infoBoxMargin,
           infoBoxTop + infoBoxMargin
