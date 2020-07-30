@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
+import 'package:intl/intl.dart' as intl;
+
 class CandleStickChart extends StatefulWidget {
   CandleStickChart({
     Key key,
@@ -892,8 +894,10 @@ class _CandleStickChartPainter extends CustomPainter {
       var high = infoBoxLayout.formatValuesFn(selectedData.high);
       var low = infoBoxLayout.formatValuesFn(selectedData.low);
       var volume = infoBoxLayout.formatValuesFn(selectedData.volume);
+      var date = DateTime.fromMillisecondsSinceEpoch(this.cursorXTime);
+      var dateStr = intl.DateFormat(infoBoxLayout.dateFormatStr).format(date);
       String infoBoxText = [
-        _timeParse(this.cursorXTime, false),
+        dateStr,
         "Open: $open",
         "Close: $close",
         "High: $high",
@@ -1268,25 +1272,21 @@ class ChartInfoBoxThemes {
       formatValuesFn: (double val) {
         return CandleStickChartValueFormat.formatPricesWithK(val);
       },
+      dateFormatStr: 'MM/dd/yyyy',
     );
   }
+
   static ChartInfoBoxLayout getLightTheme() {
-    return ChartInfoBoxLayout(
-      backgroundColor: Colors.white,
-      backgroundOpacity: 0.6,
-      textColor: Colors.black,
-      borderColor: Colors.black,
-      borderWidth: 5,
-      fontWeight: FontWeight.bold,
-      formatValuesFn: (double val) {
-        return CandleStickChartValueFormat.formatPricesWithK(val);
-      },
-    );
+    var layout = getDarkTheme();
+    layout
+      ..backgroundColor = Colors.white
+      ..textColor = Colors.black;
+    return layout;
   }
 }
 
 class ChartInfoBoxLayout {
-  const ChartInfoBoxLayout({
+  ChartInfoBoxLayout({
     this.backgroundColor,
     this.backgroundOpacity,
     this.textColor,
@@ -1294,16 +1294,18 @@ class ChartInfoBoxLayout {
     // this.textFont,
     this.borderWidth,
     this.formatValuesFn,
-    this.formatDateFn,
+    // this.formatDateFn,
+    this.dateFormatStr,
     this.fontWeight,
   });
-  final Color backgroundColor;
-  final double backgroundOpacity;
-  final Color textColor;
-  final Color borderColor;
+  Color backgroundColor;
+  double backgroundOpacity;
+  Color textColor;
+  Color borderColor;
   // final Font textFont;
-  final double borderWidth;
-  final Function formatValuesFn;
-  final Function formatDateFn;
-  final FontWeight fontWeight;
+  double borderWidth;
+  Function formatValuesFn;
+  // final Function formatDateFn;
+  String dateFormatStr;
+  FontWeight fontWeight;
 }
