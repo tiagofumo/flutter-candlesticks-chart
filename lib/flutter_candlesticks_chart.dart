@@ -923,8 +923,15 @@ class _CandleStickChartPainter extends CustomPainter {
       var infoBoxHeightAndMargin = infoBoxHeight + infoBoxMargin;
       var infoBoxPath = Path();
       double infoBoxLeft, infoBoxTop;
-      if (this.cursorX > infoBoxWidthAndMargin + infoBoxMargin) {
+      double infoBoxFingerOffset = infoBoxLayout.infoBoxFingerOffset;
+      double fingerOffsetRatio = 
+        10* (1 - this.cursorY/(infoBoxHeightAndMargin + infoBoxMargin));
+      fingerOffsetRatio = math.max(0, fingerOffsetRatio); // not smaller than 0
+      fingerOffsetRatio = math.min(1, fingerOffsetRatio); // not bigger than 1
+      infoBoxFingerOffset *= fingerOffsetRatio; // get the proportional offset
+      if (this.cursorX > infoBoxWidthAndMargin + infoBoxMargin + infoBoxFingerOffset) {
         infoBoxLeft = this.cursorX - infoBoxWidthAndMargin;
+        infoBoxFingerOffset *= -1;
       } else {
         infoBoxLeft = this.cursorX + infoBoxMargin;
       }
@@ -932,6 +939,7 @@ class _CandleStickChartPainter extends CustomPainter {
         infoBoxTop = this.cursorY - infoBoxHeightAndMargin;
       } else {
         infoBoxTop = infoBoxMargin;
+        infoBoxLeft += infoBoxFingerOffset;
       }
       infoBoxPath.moveTo(infoBoxLeft, infoBoxTop);
       infoBoxPath.addRect(
@@ -1273,6 +1281,7 @@ class ChartInfoBoxThemes {
         return CandleStickChartValueFormat.formatPricesWithK(val);
       },
       dateFormatStr: 'MM/dd/yyyy',
+      infoBoxFingerOffset: 40,
     );
   }
 
@@ -1297,6 +1306,7 @@ class ChartInfoBoxLayout {
     // this.formatDateFn,
     this.dateFormatStr,
     this.fontWeight,
+    this.infoBoxFingerOffset,
   });
   Color backgroundColor;
   double backgroundOpacity;
@@ -1308,4 +1318,5 @@ class ChartInfoBoxLayout {
   // final Function formatDateFn;
   String dateFormatStr;
   FontWeight fontWeight;
+  double infoBoxFingerOffset;
 }
