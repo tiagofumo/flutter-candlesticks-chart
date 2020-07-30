@@ -39,6 +39,7 @@ class CandleStickChart extends StatefulWidget {
     this.xAxisLabelCount = 3,
     this.fullscreenGridLine = false,
     this.showXAxisLabel = false,
+    this.infoBoxLayout,
   }) : super(key: key) {
     assert(data != null);
     if (fullscreenGridLine) {
@@ -46,6 +47,9 @@ class CandleStickChart extends StatefulWidget {
     }
     if (formatFn != null) {
       assert(!formatValueLabelWithK);
+    }
+    if (infoBoxLayout == null) {
+      infoBoxLayout = ChartInfoBoxThemes.getDarkTheme();
     }
   }
 
@@ -126,6 +130,8 @@ class CandleStickChart extends StatefulWidget {
 
   // Offset to be used on the cursor on click
   final Offset cursorOffset;
+
+  ChartInfoBoxLayout infoBoxLayout;
 
   @override
   _CandleStickChartState createState() => _CandleStickChartState();
@@ -320,6 +326,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
             fullscreenGridLine: widget.fullscreenGridLine,
             showXAxisLabels: widget.showXAxisLabel,
             xAxisLabelFormatFn: widget.xAxisLabelFormatFn,
+            infoBoxLayout: widget.infoBoxLayout,
             valueLabelWidth: valueLabelWidth,
             valueLabelHeight: valueLabelHeight,
             valueLabelFontSize: valueLabelFontSize,
@@ -362,6 +369,7 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.pointsMappingY,
     @required this.xAxisLabelCount,
     @required this.lines,
+    @required this.infoBoxLayout,
     this.formatValueLabelWithK,
     this.formatFn,
     this.xAxisLabelFormatFn,
@@ -421,6 +429,8 @@ class _CandleStickChartPainter extends CustomPainter {
 
   final bool fullscreenGridLine;
   final bool showXAxisLabels;
+
+  final ChartInfoBoxLayout infoBoxLayout;
 
   double _min;
   double _max;
@@ -1224,4 +1234,56 @@ class _ChartPointMapping {
 
   final double from;
   final double to;
+}
+
+class ChartInfoBoxThemes {
+  static ChartInfoBoxLayout getDarkTheme() {
+    return ChartInfoBoxLayout(
+      backgroundColor: Colors.black87,
+      backgroundOpacity: 0.6,
+      textColor: Colors.white,
+      borderColor: Colors.black,
+      borderWidth: 5,
+      fontWeight: FontWeight.bold,
+      formatValuesFn: (double val) {
+        return CandleStickChartValueFormat.formatPricesWithK(val);
+      },
+    );
+  }
+  static ChartInfoBoxLayout getLightTheme() {
+    return ChartInfoBoxLayout(
+      backgroundColor: Colors.white,
+      backgroundOpacity: 0.6,
+      textColor: Colors.black,
+      borderColor: Colors.black,
+      borderWidth: 5,
+      fontWeight: FontWeight.bold,
+      formatValuesFn: (double val) {
+        return CandleStickChartValueFormat.formatPricesWithK(val);
+      },
+    );
+  }
+}
+
+class ChartInfoBoxLayout {
+  const ChartInfoBoxLayout({
+    this.backgroundColor,
+    this.backgroundOpacity,
+    this.textColor,
+    this.borderColor,
+    // this.textFont,
+    this.borderWidth,
+    this.formatValuesFn,
+    this.formatDateFn,
+    this.fontWeight,
+  });
+  final Color backgroundColor;
+  final double backgroundOpacity;
+  final Color textColor;
+  final Color borderColor;
+  // final Font textFont;
+  final double borderWidth;
+  final Function formatValuesFn;
+  final Function formatDateFn;
+  final FontWeight fontWeight;
 }
