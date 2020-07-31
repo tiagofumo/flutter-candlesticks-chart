@@ -892,8 +892,6 @@ class _CandleStickChartPainter extends CustomPainter {
         dashed: cursorLineDashed,
       );
       
-      // TODO: Draw cursor info box
-      double infoBoxMargin = 1;
       var infoBoxBackgroundColor = infoBoxLayout.backgroundColor
         .withOpacity(infoBoxLayout.backgroundOpacity);
       var open = infoBoxLayout.formatValuesFn(selectedData.open);
@@ -918,14 +916,18 @@ class _CandleStickChartPainter extends CustomPainter {
           style: TextStyle(
             color: infoBoxLayout.textColor,
             fontWeight: infoBoxLayout.fontWeight,
+            fontSize: infoBoxLayout.textFontSize,
           ),
         ),
       )..layout(
-        minWidth: valueLabelWidth,
-        maxWidth: valueLabelWidth*2,
+        minWidth: valueLabelWidth * 1.5,
+        maxWidth: valueLabelWidth * 2,
       );
-      var infoBoxWidth = infoBoxTextPainter.width;
-      var infoBoxHeight = infoBoxTextPainter.height;
+      double infoBoxBorderWidth = infoBoxLayout.borderWidth;
+      double infoBoxMargin = infoBoxLayout.margin;
+      double infoBoxPadding = infoBoxLayout.padding;
+      var infoBoxWidth = infoBoxTextPainter.width + (infoBoxBorderWidth + infoBoxPadding) * 2;
+      var infoBoxHeight = infoBoxTextPainter.height + (infoBoxBorderWidth + infoBoxPadding) * 2;
       var infoBoxWidthAndMargin = infoBoxWidth + infoBoxMargin;
       var infoBoxHeightAndMargin = infoBoxHeight + infoBoxMargin;
       var infoBoxPath = Path();
@@ -937,18 +939,17 @@ class _CandleStickChartPainter extends CustomPainter {
       fingerOffsetRatio = math.min(1, fingerOffsetRatio); // not bigger than 1
       infoBoxFingerOffset *= fingerOffsetRatio; // get the proportional offset
       if (this.cursorX > infoBoxWidthAndMargin + infoBoxMargin + infoBoxFingerOffset) {
-        infoBoxLeft = this.cursorX - infoBoxWidthAndMargin;
+        infoBoxLeft = this.cursorX - infoBoxWidthAndMargin - infoBoxMargin;
         infoBoxFingerOffset *= -1;
       } else {
-        infoBoxLeft = this.cursorX + infoBoxMargin;
+        infoBoxLeft = this.cursorX + infoBoxMargin * 2;
       }
       if (this.cursorY > infoBoxHeightAndMargin + infoBoxMargin) {
-        infoBoxTop = this.cursorY - infoBoxHeightAndMargin;
+        infoBoxTop = this.cursorY - infoBoxHeightAndMargin - infoBoxMargin;
       } else {
         infoBoxTop = infoBoxMargin;
         infoBoxLeft += infoBoxFingerOffset;
       }
-      infoBoxPath.moveTo(infoBoxLeft, infoBoxTop);
       infoBoxPath.addRect(
         Rect.fromLTWH(
           infoBoxLeft,
@@ -959,13 +960,21 @@ class _CandleStickChartPainter extends CustomPainter {
       );
       canvas.drawPath(
         infoBoxPath,
-        Paint()..color = infoBoxBackgroundColor
+        Paint()
+          ..color = infoBoxBackgroundColor
+      );
+      canvas.drawPath(
+        infoBoxPath,
+        Paint()
+          ..color = infoBoxLayout.borderColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = infoBoxBorderWidth
       );
       infoBoxTextPainter.paint(
         canvas,
         Offset(
-          infoBoxLeft + infoBoxMargin,
-          infoBoxTop + infoBoxMargin
+          infoBoxLeft + infoBoxMargin + infoBoxBorderWidth + infoBoxPadding,
+          infoBoxTop + infoBoxMargin + infoBoxBorderWidth + infoBoxPadding,
         )
       );
     }
@@ -1279,23 +1288,29 @@ class ChartInfoBoxThemes {
   static ChartInfoBoxLayout getDarkTheme() {
     return ChartInfoBoxLayout(
       backgroundColor: Colors.black87,
-      backgroundOpacity: 0.6,
+      backgroundOpacity: 0.8,
       textColor: Colors.white,
-      borderColor: Colors.black,
-      borderWidth: 5,
-      fontWeight: FontWeight.bold,
+      borderColor: Colors.white,
+      textFontSize: 14,
+      borderWidth: 2.5,
+      fontWeight: FontWeight.normal,
       formatValuesFn: (double val) {
         return CandleStickChartValueFormat.formatPricesWithK(val);
       },
       dateFormatStr: 'MM/dd/yyyy',
       infoBoxFingerOffset: 40,
+      margin: 1.25,
+      padding: 3,
     );
   }
 
   static ChartInfoBoxLayout getLightTheme() {
     var layout = getDarkTheme();
     layout
-      ..backgroundColor = Colors.white
+      ..backgroundColor = Colors.white70
+      ..backgroundOpacity = 0.92
+      ..borderColor = Colors.black
+      ..textFontSize = 12
       ..textColor = Colors.black;
     return layout;
   }
@@ -1308,24 +1323,30 @@ class ChartInfoBoxLayout {
     this.textColor,
     this.borderColor,
     // this.textFont,
+    this.textFontSize,
     this.borderWidth,
     this.formatValuesFn,
     // this.formatDateFn,
     this.dateFormatStr,
     this.fontWeight,
     this.infoBoxFingerOffset,
+    this.padding,
+    this.margin,
   });
   Color backgroundColor;
   double backgroundOpacity;
   Color textColor;
   Color borderColor;
   // final Font textFont;
+  double textFontSize;
   double borderWidth;
   Function formatValuesFn;
   // final Function formatDateFn;
   String dateFormatStr;
   FontWeight fontWeight;
   double infoBoxFingerOffset;
+  double padding;
+  double margin;
 }
 
 class CandleChartI18N {
