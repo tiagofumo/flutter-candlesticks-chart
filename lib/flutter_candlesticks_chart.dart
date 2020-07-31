@@ -42,6 +42,7 @@ class CandleStickChart extends StatefulWidget {
     this.fullscreenGridLine = false,
     this.showXAxisLabel = false,
     this.infoBoxLayout,
+    this.chartI18N = const CandleChartI18N(),
   }) : super(key: key) {
     assert(data != null);
     if (fullscreenGridLine) {
@@ -132,6 +133,8 @@ class CandleStickChart extends StatefulWidget {
   final Offset cursorOffset;
 
   ChartInfoBoxLayout infoBoxLayout;
+
+  CandleChartI18N chartI18N;
 
   @override
   _CandleStickChartState createState() => _CandleStickChartState();
@@ -336,6 +339,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
             valueLabelFontSize: valueLabelFontSize,
             xAxisLabelWidth: xAxisLabelWidth,
             xAxisLabelHeight: xAxisLabelHeight,
+            chartI18N: widget.chartI18N,
           ),
         ),
       ),
@@ -389,6 +393,7 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.valueLabelHeight,
     @required this.xAxisLabelWidth,
     @required this.xAxisLabelHeight,
+    @required this.chartI18N,
   });
 
   final List<CandleStickChartData> data;
@@ -438,6 +443,8 @@ class _CandleStickChartPainter extends CustomPainter {
   final CandleStickChartData selectedData;
 
   final ChartInfoBoxLayout infoBoxLayout;
+
+  final CandleChartI18N chartI18N;
 
   double _min;
   double _max;
@@ -898,11 +905,11 @@ class _CandleStickChartPainter extends CustomPainter {
       var dateStr = intl.DateFormat(infoBoxLayout.dateFormatStr).format(date);
       String infoBoxText = [
         dateStr,
-        "Open: $open",
-        "Close: $close",
-        "High: $high",
-        "Low: $low",
-        "Volume: $volume",
+        "${chartI18N.open}: $open",
+        "${chartI18N.close}: $close",
+        "${chartI18N.high}: $high",
+        "${chartI18N.low}: $low",
+        "${chartI18N.volume}: $volume",
       ].join('\n');
       var infoBoxTextPainter = TextPainter(
         textDirection: TextDirection.ltr,
@@ -1319,4 +1326,20 @@ class ChartInfoBoxLayout {
   String dateFormatStr;
   FontWeight fontWeight;
   double infoBoxFingerOffset;
+}
+
+class CandleChartI18N {
+  const CandleChartI18N({
+    this.open = 'Open',
+    this.close = 'Close',
+    this.high = 'High',
+    this.low = 'Low',
+    this.volume = 'Volume',
+  });
+
+  final String open;
+  final String close;
+  final String high;
+  final String low;
+  final String volume;
 }
