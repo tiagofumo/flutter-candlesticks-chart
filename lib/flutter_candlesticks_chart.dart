@@ -38,7 +38,7 @@ class CandleStickChart extends StatefulWidget {
     this.formatFn,
     this.formatValueLabelWithK = false,
     this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
-    this.xAxisDateFormatString = 'yy/MM',
+    this.xAxisDateFormatString = 'MM/dd',
     this.xAxisLabelCount = 3,
     this.fullscreenGridLine = false,
     this.showXAxisLabel = false,
