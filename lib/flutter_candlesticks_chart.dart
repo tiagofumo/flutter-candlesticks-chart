@@ -32,12 +32,13 @@ class CandleStickChart extends StatefulWidget {
     this.cursorLineWidth = 0.5,
     this.cursorOffset = const Offset(0, 0),
     this.cursorLineDashed = false,
+    this.cursorXAxisFormatString = 'MM/dd/yyyy',
     this.volumeSectionOffset = 0,
     this.lines = const [],
     this.formatFn,
     this.formatValueLabelWithK = false,
     this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
-    this.xAxisLabelFormatFn,
+    this.xAxisDateFormatString = 'yy/MM',
     this.xAxisLabelCount = 3,
     this.fullscreenGridLine = false,
     this.showXAxisLabel = false,
@@ -110,6 +111,8 @@ class CandleStickChart extends StatefulWidget {
 
   final bool cursorJumpToCandleCenter;
 
+  final String cursorXAxisFormatString;
+
   final double volumeSectionOffset; 
 
   final ValueLabelBoxType valueLabelBoxType; 
@@ -120,7 +123,7 @@ class CandleStickChart extends StatefulWidget {
   /// formatFn is applyed to all values displyed on chart if provided
   final FormatFn formatFn;
 
-  final XAxisLabelFormatFn xAxisLabelFormatFn;
+  final String xAxisDateFormatString;
   final int xAxisLabelCount;
 
   final bool fullscreenGridLine;
@@ -331,7 +334,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
             cursorXTime: _cursorXTime,
             fullscreenGridLine: widget.fullscreenGridLine,
             showXAxisLabels: widget.showXAxisLabel,
-            xAxisLabelFormatFn: widget.xAxisLabelFormatFn,
+            xAxisDateFormatString: widget.xAxisDateFormatString,
             infoBoxLayout: widget.infoBoxLayout,
             selectedData: _selectedData,
             valueLabelWidth: valueLabelWidth,
@@ -340,6 +343,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
             xAxisLabelWidth: xAxisLabelWidth,
             xAxisLabelHeight: xAxisLabelHeight,
             chartI18N: widget.chartI18N,
+            cursorXAxisFormatString: widget.cursorXAxisFormatString,
           ),
         ),
       ),
@@ -373,6 +377,7 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.valueLabelBoxType,
     @required this.cursorLineWidth,
     @required this.cursorLineDashed,
+    @required this.cursorXAxisFormatString,
     @required this.pointsMappingX,
     @required this.pointsMappingY,
     @required this.xAxisLabelCount,
@@ -380,7 +385,7 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.infoBoxLayout,
     this.formatValueLabelWithK,
     this.formatFn,
-    this.xAxisLabelFormatFn,
+    this.xAxisDateFormatString,
     this.cursorX = -1,
     this.cursorY = -1,
     this.cursorYPrice = 0,
@@ -422,6 +427,7 @@ class _CandleStickChartPainter extends CustomPainter {
   final double cursorY;
   final double cursorYPrice;
   final int cursorXTime;
+  final String cursorXAxisFormatString;
   final double volumeSectionOffset;
   final bool cursorLineDashed;
   final bool formatValueLabelWithK;
@@ -434,7 +440,7 @@ class _CandleStickChartPainter extends CustomPainter {
   final double xAxisLabelHeight;
 
   final FormatFn formatFn;
-  final XAxisLabelFormatFn xAxisLabelFormatFn;
+  final String xAxisDateFormatString;
   final int xAxisLabelCount;
 
   final bool fullscreenGridLine;
@@ -464,8 +470,8 @@ class _CandleStickChartPainter extends CustomPainter {
 
   _timeParse(int time, bool onlyTime) {
     var date = DateTime.fromMillisecondsSinceEpoch(time);
-    if (this.xAxisLabelFormatFn != null) {
-      return this.xAxisLabelFormatFn(date);
+    if (this.xAxisDateFormatString != null) {
+      return intl.DateFormat(this.xAxisDateFormatString).format(date);
     }
     if (onlyTime) {
       var hour = date.hour;
@@ -861,8 +867,9 @@ class _CandleStickChartPainter extends CustomPainter {
         labelPath,
         Paint()..color = this.cursorLabelBoxColor
       );
+      var cursorDateTime = DateTime.fromMillisecondsSinceEpoch(cursorXTime);
       final Paragraph paragraph = _getParagraphBuilderFromString(
-        value: _timeParse(this.cursorXTime, false),
+        value: intl.DateFormat(cursorXAxisFormatString).format(cursorDateTime),
         textColor: this.cursorTextColor
       ).build()
       ..layout(
