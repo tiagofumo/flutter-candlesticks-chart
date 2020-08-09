@@ -10,7 +10,9 @@ void main() {
 }
 
 List<CandleStickChartData> generateData() {
-  var nGenerated = 70;
+  var nGenerated = 350;
+  var endDate = DateTime.parse('20190802');
+  // var endDate = DateTime.now();
   List<CandleStickChartData> generatedData = [
     CandleStickChartData(
       open: 1000000.0,
@@ -18,7 +20,7 @@ List<CandleStickChartData> generateData() {
       low: 990000.0,
       close: 1005000.0,
       volume: 1.0,
-      dateTime: DateTime.now().subtract(Duration(days: 70)),
+      dateTime: endDate.subtract(Duration(days: nGenerated)),
     ),
   ];
   var rng = Random();
@@ -33,7 +35,7 @@ List<CandleStickChartData> generateData() {
         high: close*(1 + rng.nextDouble()*0.015),
         low: open*(1 - rng.nextDouble()*0.01),
         volume: 0.1+rng.nextDouble()*2,
-        dateTime: DateTime.now().subtract(Duration(days: nGenerated - j + 1)),
+        dateTime: endDate.subtract(Duration(days: nGenerated - j + 1)),
       )
     );
   }
