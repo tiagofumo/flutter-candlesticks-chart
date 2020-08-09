@@ -81,6 +81,10 @@ class _MyAppState extends State<MyApp> {
     return (
       MaterialApp(
         home: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.grey,
+            title: Text('Flutter candlestick chart'),
+          ),
           body: Container(
             color: backgroundColor,
             child: Column(
