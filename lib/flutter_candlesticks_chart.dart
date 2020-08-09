@@ -470,9 +470,6 @@ class _CandleStickChartPainter extends CustomPainter {
 
   _timeParse(int time, bool onlyTime) {
     var date = DateTime.fromMillisecondsSinceEpoch(time);
-    if (this.xAxisDateFormatString != null) {
-      return intl.DateFormat(this.xAxisDateFormatString).format(date);
-    }
     if (onlyTime) {
       var hour = date.hour;
       var minute = date.minute;
@@ -657,22 +654,26 @@ class _CandleStickChartPainter extends CustomPainter {
     if (this.showXAxisLabels) {
       var nLabels = this.xAxisLabelCount;
       if (data.length > nLabels) {
-        var firstTime = data.first.dateTime.millisecondsSinceEpoch;
-        var lastTime = data.last.dateTime.millisecondsSinceEpoch;
+        var dates = data.map((d) => d.dateTime).toList();
+        var lineDates = DateHelper.getVerticalLinesDates(
+          dates: dates,
+        );
 
-        var sameDay = (lastTime - firstTime) <= 8.64e+7;
-
-        int indexDist = (data.length ~/ (1 + nLabels));
-        var i = indexDist;
         var paragraphWidth = 40.0;
-        double dx = 0;
-        int n = 0;
-        do {
-          dx = pointsMappingX[i].from +
-              ((pointsMappingX[i].from - pointsMappingX[i].to) / 2);
-          // draw value paragraphs
+        lineDates.forEach((lineDate) { 
+          var i = lineDate.index;
+          var lineX = pointsMappingX[i].from +
+              ((pointsMappingX[i].to - pointsMappingX[i].from) / 2);
+          var gridLineLabelPaint = Paint()..color = gridLineLabelColor;
+          canvas.drawLine(
+            Offset(lineX, 0),
+            Offset(lineX, height),
+            gridLineLabelPaint
+          );
+
           final Paragraph paragraph = _getParagraphBuilderFromString(
-            value: _timeParse(data[i].dateTime.millisecondsSinceEpoch, sameDay),
+            // value: intl.DateFormat(xAxisDateFormatString).format(data[i].dateTime),
+            value: lineDate.label,
             textColor: gridLineLabelColor
           ).build()..layout(
             ParagraphConstraints(
@@ -682,16 +683,9 @@ class _CandleStickChartPainter extends CustomPainter {
           canvas.drawParagraph(
             paragraph,
             Offset(
-              dx - paragraphWidth / 2 + rectWidth / 2 + lineWidth / 2,
+              lineX - paragraphWidth / 2,
               height + 6,
             ),
-          );
-          var lineX = dx + rectWidth / 2 + lineWidth;
-          var gridLineLabelPaint = Paint()..color = gridLineLabelColor;
-          canvas.drawLine(
-            Offset(lineX, 0),
-            Offset(lineX, height),
-            gridLineLabelPaint
           );
 
           canvas.drawLine(
@@ -699,11 +693,7 @@ class _CandleStickChartPainter extends CustomPainter {
             Offset(lineX, size.height),
             gridLineLabelPaint
           );
-          i += indexDist;
-          n++;
-        } while (i < data.length - 1 &&
-          dx < (size.width - valueLabelWidth - paragraphWidth / 2) &&
-          n < nLabels);
+        });
       }
     }
 
@@ -1370,4 +1360,78 @@ class CandleChartI18N {
   final String high;
   final String low;
   final String volume;
+}
+
+class ChartVerticalLineDate {
+  DateTime dateTime;
+  String label;
+  int index;
+  ChartVerticalLineDate({this.dateTime, this.label, this.index});
+}
+
+class DateHelper {
+  static List<ChartVerticalLineDate> getVerticalLinesDates({
+    List<DateTime> dates,
+    int nDates = 4,
+    bool monthDayYear = true,
+  }) {
+    // dates.sort(
+    //   (a, b) => a.millisecondsSinceEpoch.compareTo(b.millisecondsSinceEpoch)
+    // );
+    var firstDate = dates.first;
+    var lastDate = dates.last;
+    int minDateDistance = 3;
+    if (dates.length < minDateDistance * nDates + minDateDistance) {
+      nDates = ((dates.length - minDateDistance) / minDateDistance).floor();
+    }
+    if (nDates == 0) {
+      return [];
+    }
+
+    List<ChartVerticalLineDate> list = [];
+    if (lastDate.year == firstDate.year && lastDate.month == firstDate.month) {
+      // same year same month
+      var dateDistance = dates.length ~/ nDates;
+      for (var i = 1; i <= nDates; i++) {
+        var dateIndex = i*dateDistance;
+        var dateTime = dates[dateIndex];
+        list.add(
+          ChartVerticalLineDate(
+            dateTime: dateTime,
+            label: intl.DateFormat('dd').format(dateTime), 
+            index: dateIndex,
+          )
+        );
+      }
+    } else if (lastDate.year > firstDate.year) {
+      // different years
+      for (var i = firstDate.year + 1; i <= lastDate.year; i++) {
+        var dateIndex = dates.indexWhere((d) => d.year == i);
+        var dateTime = dates[dateIndex];
+          list.add(
+            ChartVerticalLineDate(
+              dateTime: dateTime,
+              label: dateTime.year.toString(), 
+              index: dateIndex, 
+            )
+          );
+        }
+    } else {
+      // same year not same month
+      var firstMonth = firstDate.month;
+      var lastMonth = lastDate.month;
+      for (var i = firstMonth + 1; i <= lastMonth; i++) {
+        var dateIndex = dates.indexWhere((d) => d.month == i);
+        var dateTime = dates[dateIndex];
+        list.add(
+          ChartVerticalLineDate(
+            dateTime: dateTime,
+            label: intl.DateFormat('MMM').format(dateTime),
+            index: dateIndex, 
+          )
+        );
+      }
+    }
+    return list;
+  }
 }
