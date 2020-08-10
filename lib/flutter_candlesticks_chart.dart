@@ -1375,9 +1375,6 @@ class DateHelper {
     int nDates = 4,
     bool monthDayYear = true,
   }) {
-    // dates.sort(
-    //   (a, b) => a.millisecondsSinceEpoch.compareTo(b.millisecondsSinceEpoch)
-    // );
     var firstDate = dates.first;
     var lastDate = dates.last;
     int minDateDistance = 3;
