@@ -10,7 +10,7 @@ void main() {
 }
 
 List<CandleStickChartData> generateData() {
-  var nGenerated = 350;
+  var nGenerated = 70;
   var endDate = DateTime.parse('20190802');
   // var endDate = DateTime.now();
   List<CandleStickChartData> generatedData = [
@@ -55,6 +55,20 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _darkMode = true;
+  Offset _cursorPosition = Offset(-1, -1);
+
+  void setCursorPosition(Offset newPosition) {
+    setState(() {
+      this._cursorPosition = newPosition;
+    });
+  }
+
+  void clearCursor() {
+    setState(() {
+      this._cursorPosition = Offset(-1, -1);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     String buttonText;
@@ -108,31 +122,58 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
                 Container(
-                  height: 400.0,
-                  child: CandleStickChart(
-                    data: widget.data,
-                    enableGridLines: true,
-                    gridLineAmount: 5,
-                    volumeProp: 0.2,
-                    volumeSectionOffset: 22,
-                    labelPrefix: ' R\$ ',
-                    showCursorCircle: false,
-                    cursorOffset: Offset(0, 50),
-                    valueLabelBoxType: ValueLabelBoxType.arrowTag,
-                    cursorLabelBoxColor: Colors.green,
-                    showXAxisLabel: true,
-                    formatValueLabelWithK: true,
-                    xAxisLabelCount: 4,
-                    cursorColor: cursorColor,
-                    infoBoxLayout: infoBoxLayout,
-                    chartI18N: candleChartI18N,
-                    lines: [
-                      LineValue(
-                        value: lastData.close,
-                        lineColor: lineColor,
-                        dashed: true,
-                      ),
-                    ],
+                  child: GestureDetector(
+                    onTapDown: (detail) {
+                      setCursorPosition(detail.localPosition);
+                    },
+                    onHorizontalDragStart: (detail) {
+                      setCursorPosition(detail.localPosition);
+                    },
+                    onHorizontalDragUpdate: (detail) {
+                      setCursorPosition(detail.localPosition);
+                    },
+                    onVerticalDragStart: (detail) {
+                      setCursorPosition(detail.localPosition);
+                    },
+                    onVerticalDragUpdate: (detail) {
+                      setCursorPosition(detail.localPosition);
+                    },
+                    onTapUp: (detail) {
+                      clearCursor();
+                    },
+                    onVerticalDragEnd: (detail) {
+                      clearCursor();
+                    },
+                    onHorizontalDragEnd: (detail) {
+                      clearCursor();
+                    },
+                    child: CandleStickChart(
+                      data: widget.data,
+                      fallbackHeight: 400,
+                      enableGridLines: true,
+                      gridLineAmount: 5,
+                      volumeProp: 0.2,
+                      volumeSectionOffset: 22,
+                      labelPrefix: ' R\$ ',
+                      showCursorCircle: false,
+                      cursorOffset: Offset(0, 50),
+                      valueLabelBoxType: ValueLabelBoxType.arrowTag,
+                      cursorLabelBoxColor: Colors.green,
+                      showXAxisLabel: true,
+                      formatValueLabelWithK: true,
+                      xAxisLabelCount: 4,
+                      cursorColor: cursorColor,
+                      infoBoxLayout: infoBoxLayout,
+                      chartI18N: candleChartI18N,
+                      cursorPosition: this._cursorPosition,
+                      lines: [
+                        LineValue(
+                          value: lastData.close,
+                          lineColor: lineColor,
+                          dashed: true,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

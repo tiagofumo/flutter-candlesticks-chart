@@ -18,7 +18,6 @@ class CandleStickChart extends StatefulWidget {
     this.gridLineWidth = 0.5,
     this.gridLineLabelColor = Colors.grey,
     this.labelPrefix = "\$",
-    this.onSelect,
     @required this.enableGridLines,
     @required this.volumeProp,
     this.increaseColor = Colors.green,
@@ -44,6 +43,7 @@ class CandleStickChart extends StatefulWidget {
     this.showXAxisLabel = false,
     this.infoBoxLayout,
     this.chartI18N = const CandleChartI18N(),
+    this.cursorPosition,
   }) : super(key: key) {
     assert(data != null);
     if (fullscreenGridLine) {
@@ -59,8 +59,6 @@ class CandleStickChart extends StatefulWidget {
 
   // final List data;
   final List<CandleStickChartData> data;
-
-  final Function(dynamic) onSelect;
 
   /// All lines in chart are drawn with this width
   final double lineWidth;
@@ -139,6 +137,8 @@ class CandleStickChart extends StatefulWidget {
 
   CandleChartI18N chartI18N;
 
+  Offset cursorPosition;
+
   @override
   _CandleStickChartState createState() => _CandleStickChartState();
 }
@@ -146,6 +146,9 @@ class CandleStickChart extends StatefulWidget {
 class _CandleStickChartState extends State<CandleStickChart> {
   final List<_ChartPointMapping> pointsMappingX = List();
   final List<_ChartPointMapping> pointsMappingY = List();
+
+  GlobalKey _stickyKey = GlobalKey();
+  Size _size;
 
   double _cursorX = -1;
   double _cursorY = -1;
@@ -165,22 +168,12 @@ class _CandleStickChartState extends State<CandleStickChart> {
   final double xAxisLabelWidth = 60;
   final double xAxisLabelHeight = 20;
 
-
   void clearCursor() {
-    setState(() {
-      this._cursorX = -1;
-      this._cursorY = -1;
-    });
+    _cursorX = -1;
+    _cursorY = -1;
   }
 
-  void _onUnselect() {
-    if (this.widget.onSelect != null) {
-      this.widget.onSelect(null);
-    }
-    clearCursor();
-  }
-
-  void _onPositionUpdate(Offset position) {
+  void _onPositionUpdate(Offset position, Size size) {
     // find candle index by coords
     var i = pointsMappingX.indexWhere(
         (el) => position.dx >= el.from && position.dx <= el.to);
@@ -206,14 +199,14 @@ class _CandleStickChartState extends State<CandleStickChart> {
     }
     // update x cursor
     var el = pointsMappingX.elementAt(i);
-    var widgetHeight = context.size.height;
-    var cursorMaxX = context.size.width - valueLabelWidth;
+    var widgetHeight = size.height;
+    var cursorMaxX = size.width - valueLabelWidth;
     var myYPosition =
         (position.dy - widgetHeight + (widgetHeight * widget.volumeProp)) * -1;
     myYPosition += widget.cursorOffset.dy;
 
     // calc chartHeight without volume part
-    final double chartHeight = context.size.height * (1 - widget.volumeProp);
+    final double chartHeight = size.height * (1 - widget.volumeProp);
     var positionPrice = (((_max - _min) * myYPosition) / chartHeight) + _min;
 
     if (position.dy - widget.cursorOffset.dy > chartHeight ||
@@ -223,28 +216,30 @@ class _CandleStickChartState extends State<CandleStickChart> {
       return;
     }
 
-    setState(() {
-      if (widget.cursorJumpToCandleCenter) {
-        // set cursox at the middle of the candle
-        this._cursorX = (el.from + el.to) / 2;
-      } else {
-        this._cursorX = position.dx;
-      }
+    if (widget.cursorJumpToCandleCenter) {
+      // set cursorx at the middle of the candle
+      _cursorX = (el.from + el.to) / 2;
+    } else {
+      _cursorX = position.dx;
+    }
 
-      this._cursorY = position.dy;
-      widget.data[i].selectedPrice = positionPrice;
+    _cursorY = position.dy;
+    widget.data[i].selectedPrice = positionPrice;
 
-      this._cursorY -= widget.cursorOffset.dy;
-      _cursorYPrice = widget.data[i].selectedPrice;
-      _cursorXTime = widget.data[i].dateTime.millisecondsSinceEpoch;
-      _selectedData = widget.data[i];
+    _cursorY -= widget.cursorOffset.dy;
+    _cursorYPrice = widget.data[i].selectedPrice;
+    _cursorXTime = widget.data[i].dateTime.millisecondsSinceEpoch;
+    _selectedData = widget.data[i];
+  }
+
+  @override
+  initState() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final BuildContext context = _stickyKey.currentContext;
+      _size = context.size;
     });
 
-    // invoke onSelect with new values
-    if (widget.onSelect != null) {
-      var val = widget.data[i];
-      this.widget.onSelect(val);
-    }
+    super.initState();
   }
 
   @override
@@ -271,35 +266,20 @@ class _CandleStickChartState extends State<CandleStickChart> {
         _min = l.value;
       }
     }
+    var cursorPosition = widget.cursorPosition;
+    if (cursorPosition == null
+        || cursorPosition.dx == -1
+        || cursorPosition.dy == -1
+        || _size == null) {
+      clearCursor();
+    } else {
+      _onPositionUpdate(cursorPosition, _size);
+    }
     return new LimitedBox(
       maxHeight: widget.fallbackHeight,
       maxWidth: widget.fallbackWidth,
-      child: GestureDetector(
-        onTapUp: (detail) {
-          _onUnselect();
-        },
-        onTapDown: (detail) {
-          _onPositionUpdate(detail.localPosition);
-        },
-        onHorizontalDragEnd: (detail) {
-          _onUnselect();
-        },
-        onHorizontalDragStart: (detail) {
-          _onPositionUpdate(detail.localPosition);
-        },
-        onHorizontalDragUpdate: (detail) {
-          _onPositionUpdate(detail.localPosition);
-        },
-        onVerticalDragStart: (detail) {
-          _onPositionUpdate(detail.localPosition);
-        },
-        onVerticalDragUpdate: (detail) {
-          _onPositionUpdate(detail.localPosition);
-        },
-        onVerticalDragEnd: (detail) {
-          _onUnselect();
-        },
-        child: CustomPaint(
+      key: _stickyKey,
+      child: CustomPaint(
           size: Size.infinite,
           painter: new _CandleStickChartPainter(
             widget.data,
@@ -346,7 +326,6 @@ class _CandleStickChartState extends State<CandleStickChart> {
             cursorXAxisFormatString: widget.cursorXAxisFormatString,
           ),
         ),
-      ),
     );
   }
 }
