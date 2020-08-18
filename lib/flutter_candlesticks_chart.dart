@@ -371,19 +371,6 @@ class _CandleStickChartPainter extends CustomPainter {
     return CandleStickChartValueFormat.formatPricesWithComma(n);
   }
 
-  _timeParse(int time, bool onlyTime) {
-    var date = DateTime.fromMillisecondsSinceEpoch(time);
-    if (onlyTime) {
-      var hour = date.hour;
-      var minute = date.minute;
-      return "${hour < 10 ? "0" : ""}${hour.toString()}:${minute < 10 ? "0" : ""}${minute.toString()}";
-    } else {
-      var day = date.day;
-      var month = date.month;
-      return "${month < 10 ? "0" : ""}${month.toString()}/${day < 10 ? "0" : ""}${day.toString()}";
-    }
-  }
-
   update() {
     _min = double.infinity;
     _max = -double.infinity;
