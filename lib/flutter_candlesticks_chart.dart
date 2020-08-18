@@ -6,7 +6,7 @@ import 'dart:math' as math;
 
 import 'package:intl/intl.dart' as intl;
 
-class CandleStickChart extends StatefulWidget {
+class CandleStickChart extends StatelessWidget {
   CandleStickChart({
     Key key,
     @required this.data,
@@ -139,16 +139,149 @@ class CandleStickChart extends StatefulWidget {
 
   Offset cursorPosition;
 
-  @override
-  _CandleStickChartState createState() => _CandleStickChartState();
-}
-
-class _CandleStickChartState extends State<CandleStickChart> {
   final List<_ChartPointMapping> pointsMappingX = List();
   final List<_ChartPointMapping> pointsMappingY = List();
 
-  GlobalKey _stickyKey = GlobalKey();
-  Size _size;
+  @override
+  Widget build(BuildContext context) {
+    return new LimitedBox(
+      maxHeight: fallbackHeight,
+      maxWidth: fallbackWidth,
+      child: CustomPaint(
+        size: Size.infinite,
+        painter: new _CandleStickChartPainter(
+          data,
+          lineWidth: lineWidth,
+          gridLineColor: gridLineColor,
+          gridLineAmount: gridLineAmount,
+          gridLineWidth: gridLineWidth,
+          gridLineLabelColor: gridLineLabelColor,
+          enableGridLines: enableGridLines,
+          volumeProp: volumeProp,
+          labelPrefix: labelPrefix,
+          increaseColor: increaseColor,
+          decreaseColor: decreaseColor,
+          cursorColor: cursorColor,
+          showCursorCircle: showCursorCircle,
+          showCursorInfoBox: showCursorInfoBox,
+          cursorTextColor: cursorTextColor,
+          cursorLabelBoxColor: cursorLabelBoxColor,
+          volumeSectionOffset: volumeSectionOffset,
+          valueLabelBoxType: valueLabelBoxType,
+          cursorLineWidth: cursorLineWidth,
+          cursorLineDashed: cursorLineDashed,
+          xAxisLabelCount: xAxisLabelCount,
+          lines: lines,
+          formatFn: formatFn,
+          formatValueLabelWithK: formatValueLabelWithK,
+          fullscreenGridLine: fullscreenGridLine,
+          showXAxisLabels: showXAxisLabel,
+          xAxisDateFormatString: xAxisDateFormatString,
+          infoBoxLayout: infoBoxLayout,
+          chartI18N: chartI18N,
+          cursorXAxisFormatString: cursorXAxisFormatString,
+          cursorPosition: cursorPosition,
+          cursorOffset: cursorOffset,
+          cursorJumpToCandleCenter: cursorJumpToCandleCenter,
+          pointsMappingX: pointsMappingX,
+          pointsMappingY: pointsMappingY
+        ),
+      ),
+    );
+  }
+}
+
+typedef FormatFn = String Function(double val);
+
+typedef XAxisLabelFormatFn = String Function(DateTime date);
+
+class _CandleStickChartPainter extends CustomPainter {
+  _CandleStickChartPainter(
+    this.data, {
+    @required this.lineWidth,
+    @required this.enableGridLines,
+    @required this.gridLineColor,
+    @required this.gridLineAmount,
+    @required this.gridLineWidth,
+    @required this.gridLineLabelColor,
+    @required this.volumeProp,
+    @required this.labelPrefix,
+    @required this.increaseColor,
+    @required this.decreaseColor,
+    @required this.cursorColor,
+    @required this.showCursorCircle,
+    @required this.showCursorInfoBox,
+    @required this.cursorTextColor,
+    @required this.cursorLabelBoxColor,
+    @required this.volumeSectionOffset,
+    @required this.valueLabelBoxType,
+    @required this.cursorLineWidth,
+    @required this.cursorLineDashed,
+    @required this.cursorXAxisFormatString,
+    @required this.pointsMappingX,
+    @required this.pointsMappingY,
+    @required this.xAxisLabelCount,
+    @required this.lines,
+    @required this.infoBoxLayout,
+    @required this.cursorJumpToCandleCenter,
+    this.formatValueLabelWithK,
+    this.formatFn,
+    this.xAxisDateFormatString,
+    this.fullscreenGridLine = false,
+    this.showXAxisLabels = false,
+    @required this.chartI18N,
+    @required this.cursorPosition,
+    @required this.cursorOffset,
+  });
+
+  final List<CandleStickChartData> data;
+  final double lineWidth;
+  final bool enableGridLines;
+  final Color gridLineColor;
+  final int gridLineAmount;
+  final double gridLineWidth;
+  final Color gridLineLabelColor;
+  final String labelPrefix;
+  final double volumeProp;
+  final Color increaseColor;
+  final Color decreaseColor;
+
+  final ValueLabelBoxType valueLabelBoxType;
+  final bool showCursorCircle;
+  final bool showCursorInfoBox;
+  final Color cursorColor;
+  final Color cursorTextColor;
+  final Color cursorLabelBoxColor;
+  final double cursorLineWidth;
+  final List<_ChartPointMapping> pointsMappingX;
+  final List<_ChartPointMapping> pointsMappingY;
+  final List<LineValue> lines;
+  final String cursorXAxisFormatString;
+  final double volumeSectionOffset;
+  final bool cursorLineDashed;
+  final bool formatValueLabelWithK;
+  final bool cursorJumpToCandleCenter;
+
+  final FormatFn formatFn;
+  final String xAxisDateFormatString;
+  final int xAxisLabelCount;
+
+  final bool fullscreenGridLine;
+  final bool showXAxisLabels;
+
+  final ChartInfoBoxLayout infoBoxLayout;
+
+  final CandleChartI18N chartI18N;
+
+  final Offset cursorPosition;
+
+  final Offset cursorOffset;
+
+  double _min;
+  double _max;
+  double _maxVolume;
+
+  TextPainter maxVolumePainter;
 
   double _cursorX = -1;
   double _cursorY = -1;
@@ -156,10 +289,6 @@ class _CandleStickChartState extends State<CandleStickChart> {
   int _cursorXTime = 0;
 
   CandleStickChartData _selectedData;
-
-  double _min = double.infinity;
-  double _max = -double.infinity;
-  double _maxVolume = -double.infinity;
 
   final double valueLabelWidth = 60.0;
   final double valueLabelFontSize = 10.0;
@@ -202,21 +331,21 @@ class _CandleStickChartState extends State<CandleStickChart> {
     var widgetHeight = size.height;
     var cursorMaxX = size.width - valueLabelWidth;
     var myYPosition =
-        (position.dy - widgetHeight + (widgetHeight * widget.volumeProp)) * -1;
-    myYPosition += widget.cursorOffset.dy;
+        (position.dy - widgetHeight + (widgetHeight * volumeProp)) * -1;
+    myYPosition += cursorOffset.dy;
 
     // calc chartHeight without volume part
-    final double chartHeight = size.height * (1 - widget.volumeProp);
+    final double chartHeight = size.height * (1 - volumeProp);
     var positionPrice = (((_max - _min) * myYPosition) / chartHeight) + _min;
 
-    if (position.dy - widget.cursorOffset.dy > chartHeight ||
-          position.dy - widget.cursorOffset.dy < 0 ||
-          position.dx - widget.cursorOffset.dx > cursorMaxX) {
+    if (position.dy - cursorOffset.dy > chartHeight ||
+          position.dy - cursorOffset.dy < 0 ||
+          position.dx - cursorOffset.dx > cursorMaxX) {
       clearCursor();
       return;
     }
 
-    if (widget.cursorJumpToCandleCenter) {
+    if (cursorJumpToCandleCenter) {
       // set cursorx at the middle of the candle
       _cursorX = (el.from + el.to) / 2;
     } else {
@@ -224,218 +353,13 @@ class _CandleStickChartState extends State<CandleStickChart> {
     }
 
     _cursorY = position.dy;
-    widget.data[i].selectedPrice = positionPrice;
+    data[i].selectedPrice = positionPrice;
 
-    _cursorY -= widget.cursorOffset.dy;
-    _cursorYPrice = widget.data[i].selectedPrice;
-    _cursorXTime = widget.data[i].dateTime.millisecondsSinceEpoch;
-    _selectedData = widget.data[i];
+    _cursorY -= cursorOffset.dy;
+    _cursorYPrice = data[i].selectedPrice;
+    _cursorXTime = data[i].dateTime.millisecondsSinceEpoch;
+    _selectedData = data[i];
   }
-
-  @override
-  initState() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final BuildContext context = _stickyKey.currentContext;
-      _size = context.size;
-    });
-
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    _min = double.infinity;
-    _max = -double.infinity;
-    _maxVolume = -double.infinity;
-    for (var i in widget.data) {
-      if (i.high > _max) {
-        _max = i.high.toDouble();
-      }
-      if (i.low < _min) {
-        _min = i.low.toDouble();
-      }
-      if (i.volume > _maxVolume) {
-        _maxVolume = i.volume.toDouble();
-      }
-    }
-    for (var l in widget.lines) {
-      if (l.value > _max) {
-        _max = l.value;
-      }
-      if (l.value < _min) {
-        _min = l.value;
-      }
-    }
-    var cursorPosition = widget.cursorPosition;
-    if (cursorPosition == null
-        || cursorPosition.dx == -1
-        || cursorPosition.dy == -1
-        || _size == null) {
-      clearCursor();
-    } else {
-      _onPositionUpdate(cursorPosition, _size);
-    }
-    return new LimitedBox(
-      maxHeight: widget.fallbackHeight,
-      maxWidth: widget.fallbackWidth,
-      key: _stickyKey,
-      child: CustomPaint(
-          size: Size.infinite,
-          painter: new _CandleStickChartPainter(
-            widget.data,
-            lineWidth: widget.lineWidth,
-            gridLineColor: widget.gridLineColor,
-            gridLineAmount: widget.gridLineAmount,
-            gridLineWidth: widget.gridLineWidth,
-            gridLineLabelColor: widget.gridLineLabelColor,
-            enableGridLines: widget.enableGridLines,
-            volumeProp: widget.volumeProp,
-            labelPrefix: widget.labelPrefix,
-            increaseColor: widget.increaseColor,
-            decreaseColor: widget.decreaseColor,
-            cursorColor: widget.cursorColor,
-            showCursorCircle: widget.showCursorCircle,
-            showCursorInfoBox: widget.showCursorInfoBox,
-            cursorTextColor: widget.cursorTextColor,
-            cursorLabelBoxColor: widget.cursorLabelBoxColor,
-            volumeSectionOffset: widget.volumeSectionOffset,
-            valueLabelBoxType: widget.valueLabelBoxType,
-            cursorLineWidth: widget.cursorLineWidth,
-            cursorLineDashed: widget.cursorLineDashed,
-            xAxisLabelCount: widget.xAxisLabelCount,
-            pointsMappingX: pointsMappingX,
-            pointsMappingY: pointsMappingY,
-            lines: widget.lines,
-            formatFn: widget.formatFn,
-            formatValueLabelWithK: widget.formatValueLabelWithK,
-            cursorX: _cursorX,
-            cursorY: _cursorY,
-            cursorYPrice: _cursorYPrice,
-            cursorXTime: _cursorXTime,
-            fullscreenGridLine: widget.fullscreenGridLine,
-            showXAxisLabels: widget.showXAxisLabel,
-            xAxisDateFormatString: widget.xAxisDateFormatString,
-            infoBoxLayout: widget.infoBoxLayout,
-            selectedData: _selectedData,
-            valueLabelWidth: valueLabelWidth,
-            valueLabelHeight: valueLabelHeight,
-            valueLabelFontSize: valueLabelFontSize,
-            xAxisLabelWidth: xAxisLabelWidth,
-            xAxisLabelHeight: xAxisLabelHeight,
-            chartI18N: widget.chartI18N,
-            cursorXAxisFormatString: widget.cursorXAxisFormatString,
-          ),
-        ),
-    );
-  }
-}
-
-typedef FormatFn = String Function(double val);
-
-typedef XAxisLabelFormatFn = String Function(DateTime date);
-
-class _CandleStickChartPainter extends CustomPainter {
-  _CandleStickChartPainter(
-    this.data, {
-    @required this.lineWidth,
-    @required this.enableGridLines,
-    @required this.gridLineColor,
-    @required this.gridLineAmount,
-    @required this.gridLineWidth,
-    @required this.gridLineLabelColor,
-    @required this.volumeProp,
-    @required this.labelPrefix,
-    @required this.increaseColor,
-    @required this.decreaseColor,
-    @required this.cursorColor,
-    @required this.showCursorCircle,
-    @required this.showCursorInfoBox,
-    @required this.cursorTextColor,
-    @required this.cursorLabelBoxColor,
-    @required this.volumeSectionOffset,
-    @required this.valueLabelBoxType,
-    @required this.cursorLineWidth,
-    @required this.cursorLineDashed,
-    @required this.cursorXAxisFormatString,
-    @required this.pointsMappingX,
-    @required this.pointsMappingY,
-    @required this.xAxisLabelCount,
-    @required this.lines,
-    @required this.infoBoxLayout,
-    this.formatValueLabelWithK,
-    this.formatFn,
-    this.xAxisDateFormatString,
-    this.cursorX = -1,
-    this.cursorY = -1,
-    this.cursorYPrice = 0,
-    this.cursorXTime = 0,
-    this.selectedData,
-    this.fullscreenGridLine = false,
-    this.showXAxisLabels = false,
-    @required this.valueLabelWidth,
-    @required this.valueLabelFontSize,
-    @required this.valueLabelHeight,
-    @required this.xAxisLabelWidth,
-    @required this.xAxisLabelHeight,
-    @required this.chartI18N,
-  });
-
-  final List<CandleStickChartData> data;
-  final double lineWidth;
-  final bool enableGridLines;
-  final Color gridLineColor;
-  final int gridLineAmount;
-  final double gridLineWidth;
-  final Color gridLineLabelColor;
-  final String labelPrefix;
-  final double volumeProp;
-  final Color increaseColor;
-  final Color decreaseColor;
-
-  final ValueLabelBoxType valueLabelBoxType;
-  final bool showCursorCircle;
-  final bool showCursorInfoBox;
-  final Color cursorColor;
-  final Color cursorTextColor;
-  final Color cursorLabelBoxColor;
-  final double cursorLineWidth;
-  final List<_ChartPointMapping> pointsMappingX;
-  final List<_ChartPointMapping> pointsMappingY;
-  final List<LineValue> lines;
-  final double cursorX;
-  final double cursorY;
-  final double cursorYPrice;
-  final int cursorXTime;
-  final String cursorXAxisFormatString;
-  final double volumeSectionOffset;
-  final bool cursorLineDashed;
-  final bool formatValueLabelWithK;
-
-  final double valueLabelWidth;
-  final double valueLabelFontSize;
-  final double valueLabelHeight;
-
-  final double xAxisLabelWidth;
-  final double xAxisLabelHeight;
-
-  final FormatFn formatFn;
-  final String xAxisDateFormatString;
-  final int xAxisLabelCount;
-
-  final bool fullscreenGridLine;
-  final bool showXAxisLabels;
-
-  final CandleStickChartData selectedData;
-
-  final ChartInfoBoxLayout infoBoxLayout;
-
-  final CandleChartI18N chartI18N;
-
-  double _min;
-  double _max;
-  double _maxVolume;
-
-  TextPainter maxVolumePainter;
 
   numCommaParse(double n) {
     if (this.formatFn != null) {
@@ -676,6 +600,14 @@ class _CandleStickChartPainter extends CustomPainter {
       }
     }
 
+    if (cursorPosition == null
+        || cursorPosition.dx == -1
+        || cursorPosition.dy == -1) {
+      clearCursor();
+    } else {
+      _onPositionUpdate(cursorPosition, size);
+    }
+
     // Loop through all data
     for (int i = 0; i < data.length; i++) {
       rectLeft = pointsMappingX[i].from;
@@ -792,16 +724,16 @@ class _CandleStickChartPainter extends CustomPainter {
     
 
     // draw cursor circle
-    if (this.showCursorCircle && this.cursorX != -1 && this.cursorY != -1) {
+    if (this.showCursorCircle && _cursorX != -1 && _cursorY != -1) {
       canvas.drawCircle(
-        Offset(this.cursorX, this.cursorY),
+        Offset(_cursorX, _cursorY),
         3,
         cursorPaint,
       );
     }
 
     // draw cursor vertical line
-    if (this.cursorX != -1) {
+    if (_cursorX != -1) {
       final max = size.height - volumeHeight; // size gets to width
       double dashWidth = 5;
       var dashSpace = 5;
@@ -810,23 +742,23 @@ class _CandleStickChartPainter extends CustomPainter {
       if (cursorLineDashed) {
         while (startY < max) {
           canvas.drawLine(
-            Offset(cursorX, startY),
-            Offset(cursorX, startY + dashWidth),
+            Offset(_cursorX, startY),
+            Offset(_cursorX, startY + dashWidth),
             cursorPaint
           );
           startY += space;
         }
       } else {
         canvas.drawLine(
-          Offset(cursorX, 0),
-          Offset(cursorX, max),
+          Offset(_cursorX, 0),
+          Offset(_cursorX, max),
           cursorPaint,
         );
       }
       // draw x axis cursor label
       var labelPath = Path();
       var halfLabelWidth = xAxisLabelWidth / 2; 
-      var labelLeft = math.max(cursorX - halfLabelWidth, 0.0);
+      var labelLeft = math.max(_cursorX - halfLabelWidth, 0.0);
       labelPath.moveTo(labelLeft, max);
       labelPath.relativeLineTo(xAxisLabelWidth, 0);
       labelPath.relativeLineTo(0, xAxisLabelHeight);
@@ -836,7 +768,7 @@ class _CandleStickChartPainter extends CustomPainter {
         labelPath,
         Paint()..color = this.cursorLabelBoxColor
       );
-      var cursorDateTime = DateTime.fromMillisecondsSinceEpoch(cursorXTime);
+      var cursorDateTime = DateTime.fromMillisecondsSinceEpoch(_cursorXTime);
       final Paragraph paragraph = _getParagraphBuilderFromString(
         value: intl.DateFormat(cursorXAxisFormatString).format(cursorDateTime),
         textColor: this.cursorTextColor
@@ -855,12 +787,12 @@ class _CandleStickChartPainter extends CustomPainter {
       );
     }
 
-    if (this.cursorY != -1) {
+    if (_cursorY != -1) {
       // draw cursor horizontal line
       _drawValueLabel(
         canvas: canvas,
         size: size,
-        value: this.cursorYPrice,
+        value: _cursorYPrice,
         lineColor: this.cursorColor,
         boxColor: this.cursorLabelBoxColor,
         textColor: this.cursorTextColor,
@@ -870,12 +802,12 @@ class _CandleStickChartPainter extends CustomPainter {
       
       var infoBoxBackgroundColor = infoBoxLayout.backgroundColor
         .withOpacity(infoBoxLayout.backgroundOpacity);
-      var open = infoBoxLayout.formatValuesFn(selectedData.open);
-      var close = infoBoxLayout.formatValuesFn(selectedData.close);
-      var high = infoBoxLayout.formatValuesFn(selectedData.high);
-      var low = infoBoxLayout.formatValuesFn(selectedData.low);
-      var volume = infoBoxLayout.formatValuesFn(selectedData.volume);
-      var date = DateTime.fromMillisecondsSinceEpoch(this.cursorXTime);
+      var open = infoBoxLayout.formatValuesFn(_selectedData.open);
+      var close = infoBoxLayout.formatValuesFn(_selectedData.close);
+      var high = infoBoxLayout.formatValuesFn(_selectedData.high);
+      var low = infoBoxLayout.formatValuesFn(_selectedData.low);
+      var volume = infoBoxLayout.formatValuesFn(_selectedData.volume);
+      var date = DateTime.fromMillisecondsSinceEpoch(_cursorXTime);
       var dateStr = intl.DateFormat(infoBoxLayout.dateFormatStr).format(date);
       String infoBoxText = [
         dateStr,
@@ -910,18 +842,18 @@ class _CandleStickChartPainter extends CustomPainter {
       double infoBoxLeft, infoBoxTop;
       double infoBoxFingerOffset = infoBoxLayout.infoBoxFingerOffset;
       double fingerOffsetRatio = 
-        10* (1 - this.cursorY/(infoBoxHeightAndMargin + infoBoxMargin));
+        10* (1 - _cursorY/(infoBoxHeightAndMargin + infoBoxMargin));
       fingerOffsetRatio = math.max(0, fingerOffsetRatio); // not smaller than 0
       fingerOffsetRatio = math.min(1, fingerOffsetRatio); // not bigger than 1
       infoBoxFingerOffset *= fingerOffsetRatio; // get the proportional offset
-      if (this.cursorX > infoBoxWidthAndMargin + infoBoxMargin + infoBoxFingerOffset) {
-        infoBoxLeft = this.cursorX - infoBoxWidthAndMargin - infoBoxMargin;
+      if (_cursorX > infoBoxWidthAndMargin + infoBoxMargin + infoBoxFingerOffset) {
+        infoBoxLeft = _cursorX - infoBoxWidthAndMargin - infoBoxMargin;
         infoBoxFingerOffset *= -1;
       } else {
-        infoBoxLeft = this.cursorX + infoBoxMargin * 2;
+        infoBoxLeft = _cursorX + infoBoxMargin * 2;
       }
-      if (this.cursorY > infoBoxHeightAndMargin + infoBoxMargin) {
-        infoBoxTop = this.cursorY - infoBoxHeightAndMargin - infoBoxMargin;
+      if (_cursorY > infoBoxHeightAndMargin + infoBoxMargin) {
+        infoBoxTop = _cursorY - infoBoxHeightAndMargin - infoBoxMargin;
       } else {
         infoBoxTop = infoBoxMargin;
         infoBoxLeft += infoBoxFingerOffset;
@@ -1173,9 +1105,8 @@ class _CandleStickChartPainter extends CustomPainter {
       cursorColor != old.cursorColor ||
       cursorTextColor != old.cursorTextColor ||
       lines.hashCode != old.lines.hashCode ||
-      cursorX != old.cursorX ||
-      cursorY != old.cursorY ||
-      cursorYPrice != old.cursorYPrice ||
+      cursorPosition.dx != old.cursorPosition.dx ||
+      cursorPosition.dy != old.cursorPosition.dy ||
       _max != old._max ||
       _min != old._min ||
       _maxVolume != old._maxVolume;
