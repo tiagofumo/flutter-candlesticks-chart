@@ -395,22 +395,6 @@ class _CandleStickChartPainter extends CustomPainter {
         _min = l.value;
       }
     }
-
-    if (enableGridLines) {
-      // Label volume line
-      maxVolumePainter = TextPainter(
-        text: TextSpan(
-          text: labelPrefix + numCommaParse(_maxVolume),
-          style: TextStyle(
-            color: gridLineLabelColor,
-            fontSize: 10.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      maxVolumePainter.layout();
-    }
   }
 
   @override
@@ -471,7 +455,6 @@ class _CandleStickChartPainter extends CustomPainter {
 
       // Label volume line
       if (volumeProp > 0) {
-        // maxVolumePainter.paint(canvas, new Offset(8, gridLineY + 2.0));
         // TODO: GET STARTX
         double startX = 0;
         var lineYTop = gridLineY + volumeSectionOffset;
