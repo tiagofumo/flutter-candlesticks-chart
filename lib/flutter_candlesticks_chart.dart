@@ -281,8 +281,6 @@ class _CandleStickChartPainter extends CustomPainter {
   double _max;
   double _maxVolume;
 
-  TextPainter maxVolumePainter;
-
   double _cursorX = -1;
   double _cursorY = -1;
   double _cursorYPrice = 0;
@@ -459,43 +457,53 @@ class _CandleStickChartPainter extends CustomPainter {
         double startX = 0;
         var lineYTop = gridLineY + volumeSectionOffset;
         var endX = size.width;
-        _drawVolumeValueLabel(
-          canvas: canvas,
-          startX: startX,
-          endX: endX,
-          lineY: lineYTop,
-          value: _maxVolume,
-          lineColor: gridLineColor,
-          textColor: gridLineLabelColor,
-          lineWidth: gridLineWidth,
-        );
-        var lineYMiddle = size.height - (volumeHeight - volumeSectionOffset)/2;
-        _drawVolumeValueLabel(
-          canvas: canvas,
-          startX: startX,
-          endX: endX,
-          lineY: lineYMiddle,
-          value: _maxVolume/2,
-          lineColor: gridLineColor,
-          textColor: gridLineLabelColor,
-          lineWidth: gridLineWidth,
-        );
-        var lineYBottom = size.height;
-        _drawVolumeValueLabel(
-          canvas: canvas,
-          startX: startX,
-          endX: endX,
-          lineY: lineYBottom,
-          value: 0,
-          lineColor: gridLineColor,
-          textColor: gridLineLabelColor,
-          lineWidth: gridLineWidth,
-        );
+        var volumeGridLinesList = GridLineHelper.getVolumeGridLines([], max: _maxVolume);
+        volumeGridLinesList.forEach((volumeGridLineValue) {
+          var lineY = size.height - (volumeGridLineValue / _maxVolume) * (size.height - lineYTop);
+          _drawVolumeValueLabel(
+            canvas: canvas,
+            startX: startX,
+            endX: endX,
+            lineY: lineY,
+            value: volumeGridLineValue,
+            lineColor: gridLineColor,
+            textColor: gridLineLabelColor,
+            lineWidth: gridLineWidth,
+          );
+        });
         endX -= valueLabelWidth;
         canvas.drawLine(
-          Offset(endX, lineYTop), 
-          Offset(endX, lineYBottom),
+          Offset(startX, lineYTop), 
+          Offset(endX, lineYTop),
           gridLinePaint
+        );
+        canvas.drawLine(
+          Offset(startX, size.height), 
+          Offset(endX, size.height),
+          gridLinePaint
+        );
+        canvas.drawLine(
+          Offset(endX, lineYTop), 
+          Offset(endX, size.height),
+          gridLinePaint
+        );
+        var zeroVolumeTextPainter = TextPainter(
+          textDirection: TextDirection.ltr,
+          text: TextSpan(
+            text: "  " + 0.0.toString(),
+            style: TextStyle(
+              color: gridLineLabelColor,
+              fontSize: valueLabelFontSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        )..layout(
+          minWidth: valueLabelWidth,
+          maxWidth: valueLabelWidth,
+        );
+        zeroVolumeTextPainter.paint(
+          canvas,
+          Offset(endX, size.height - zeroVolumeTextPainter.height + 1)
         );
       }
     }
@@ -528,7 +536,7 @@ class _CandleStickChartPainter extends CustomPainter {
       var nLabels = this.xAxisLabelCount;
       if (data.length > nLabels) {
         var dates = data.map((d) => d.dateTime).toList();
-        var lineDates = DateHelper.getVerticalLinesDates(
+        var lineDates = GridLineHelper.getVerticalLinesDates(
           dates: dates,
         );
 
@@ -776,7 +784,7 @@ class _CandleStickChartPainter extends CustomPainter {
       var close = infoBoxLayout.formatValuesFn(_selectedData.close);
       var high = infoBoxLayout.formatValuesFn(_selectedData.high);
       var low = infoBoxLayout.formatValuesFn(_selectedData.low);
-      var volume = infoBoxLayout.formatValuesFn(_selectedData.volume);
+      var volume = CandleStickChartValueFormat.formatPricesWithAllLetters(_selectedData.volume);
       var date = DateTime.fromMillisecondsSinceEpoch(_cursorXTime);
       var dateStr = intl.DateFormat(infoBoxLayout.dateFormatStr).format(date);
       String infoBoxText = [
@@ -868,6 +876,21 @@ class _CandleStickChartPainter extends CustomPainter {
     Color lineColor = Colors.black,
     Color textColor = Colors.white,
   }) {
+    var label = CandleStickChartValueFormat.formatPricesWithAllLetters(value);
+    var textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+      text: TextSpan(
+        text: "  " + label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: valueLabelFontSize,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    )..layout(
+      minWidth: valueLabelWidth,
+      maxWidth: valueLabelWidth,
+    );
     canvas.drawLine(
       Offset(startX, lineY),
       Offset(endX - valueLabelWidth, lineY),
@@ -875,13 +898,10 @@ class _CandleStickChartPainter extends CustomPainter {
         ..color = lineColor
         ..strokeWidth = lineWidth
     );
-    final Paragraph paragraph =
-      _getParagraphBuilderFromDouble(value, textColor).build()
-        ..layout(ParagraphConstraints(
-          width: valueLabelWidth,
-        ));
-    canvas.drawParagraph(paragraph,
-      Offset(endX - valueLabelWidth, lineY - valueLabelFontSize / 2));
+    textPainter.paint(
+      canvas,
+      Offset(endX - valueLabelWidth, lineY - valueLabelFontSize / 2)
+    );
   }
 
   // draws line and value box over x-axis
@@ -1107,6 +1127,23 @@ enum ValueLabelBoxType {
 }
 
 class CandleStickChartValueFormat {
+  static FormatFn formatPricesWithAllLetters = (double val) {
+    var trillion = math.pow(10, 12);
+    var billion = math.pow(10, 9);
+    var million = math.pow(10, 6);
+    if (val >= trillion) {
+      return (val / trillion).floor().toString() + 'T';
+    } else if (val >= billion) {
+      return (val / billion).floor().toString() + 'B';
+    } if (val > million) {
+      return (val / million).floor().toString() + 'M';
+    } else if (val >= 1000) {
+      return (val / 1000).floor().toString() + 'K';
+    } else {
+      return formatPricesWithComma(val);
+    }
+  };
+  
   static FormatFn formatPricesWithK = (double val) {
     if (val > 999999) {
       return (val / 1000).floor().toString() + 'K';
@@ -1249,7 +1286,7 @@ class ChartVerticalLineDate {
   ChartVerticalLineDate({this.dateTime, this.label, this.index});
 }
 
-class DateHelper {
+class GridLineHelper {
   static List<ChartVerticalLineDate> getVerticalLinesDates({
     List<DateTime> dates,
     int nDates = 4,
@@ -1310,5 +1347,42 @@ class DateHelper {
       }
     }
     return list;
+  }
+
+  static List<double> getVolumeGridLines(
+    List<double> volumeList,
+    {
+      double max
+    }
+  ) {
+    if (max == null) {
+      max = volumeList.first;
+      for (var i = 0; i < volumeList.length; i++) {
+        if (volumeList[i] > max) {
+          max = volumeList[i];
+        }
+      }
+    }
+    var string = max.floor().toString();
+    var firstNum = double.parse(string.characters.toList().first);
+    var times10 = string.length - 1;
+    var pow10 = math.pow(10, times10).toDouble();
+    if (firstNum > 5 || firstNum == 5 && max >= firstNum * pow10 * 1.2) {
+      return [5.0 * pow10];
+    } else if(firstNum == 5 || firstNum == 4) {
+      return [2.5 * pow10];
+    } else if(firstNum == 3 || firstNum == 2 && max >= 2 * pow10 * 1.15) {
+      return [2.0 * pow10];
+    } else if(firstNum == 1 && max >= 1000000000 && max <= 1500000000) {
+      return [1000000000.0, 500000000.0];
+    } else if(firstNum == 2 || firstNum == 1 && max >= pow10 *1.2) {
+      return [pow10];
+    } else {
+      string = (max / 2).floor().toString();
+      firstNum = double.parse(string.characters.toList().first);
+      times10 = string.length - 1;
+      pow10 = math.pow(10, times10).toDouble();
+      return [firstNum * pow10];
+    }
   }
 }

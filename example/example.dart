@@ -19,7 +19,7 @@ List<CandleStickChartData> generateData() {
       high: 1010000.0,
       low: 990000.0,
       close: 1005000.0,
-      volume: 1.0,
+      volume: 300000000.0,
       dateTime: endDate.subtract(Duration(days: nGenerated)),
     ),
   ];
@@ -34,7 +34,7 @@ List<CandleStickChartData> generateData() {
         close: close,
         high: close*(1 + rng.nextDouble()*0.015),
         low: open*(1 - rng.nextDouble()*0.01),
-        volume: 0.1+rng.nextDouble()*2,
+        volume: lastData.volume*(1+ rng.nextDouble()*0.4 - 0.2),
         dateTime: endDate.subtract(Duration(days: nGenerated - j + 1)),
       )
     );
