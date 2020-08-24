@@ -72,23 +72,23 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     String buttonText;
-    ChartInfoBoxLayout infoBoxLayout;
+    ChartInfoBoxStyle infoBoxStyle;
     Color backgroundColor, cursorColor;
     if (this._darkMode) {
       buttonText = "Light Mode";
-      infoBoxLayout = ChartInfoBoxThemes.getDarkTheme();
+      infoBoxStyle = ChartInfoBoxThemes.getDarkTheme();
       backgroundColor = Colors.black;
       cursorColor = Colors.white;
     } else {
       buttonText = "Dark Mode";
-      infoBoxLayout = ChartInfoBoxThemes.getLightTheme();
+      infoBoxStyle = ChartInfoBoxThemes.getLightTheme();
       backgroundColor = Colors.white;
       cursorColor = Colors.black;
     }
     var lastData = widget.data.last;
     var lineColor = lastData.close >= lastData.open ? Colors.green : Colors.red;
-    infoBoxLayout.dateFormatStr = 'dd/MM/yyyy';
-    var candleChartI18N = CandleChartI18N(
+    infoBoxStyle.dateFormatStr = 'dd/MM/yyyy';
+    infoBoxStyle.chartI18N = CandleChartI18N(
       open: "Abertura",
       close: "Fecha",
       high: "Máxima",
@@ -155,16 +155,17 @@ class _MyAppState extends State<MyApp> {
                       volumeProp: 0.2,
                       volumeSectionOffset: 22,
                       labelPrefix: ' R\$ ',
-                      showCursorCircle: false,
-                      cursorOffset: Offset(0, 50),
                       valueLabelBoxType: ValueLabelBoxType.arrowTag,
-                      cursorLabelBoxColor: Colors.green,
                       showXAxisLabel: true,
                       formatValueLabelWithK: true,
                       xAxisLabelCount: 4,
-                      cursorColor: cursorColor,
-                      infoBoxLayout: infoBoxLayout,
-                      chartI18N: candleChartI18N,
+                      infoBoxStyle: infoBoxStyle,
+                      cursorStyle: CandleChartCursorStyle(
+                        cursorColor: cursorColor,
+                        showCursorCircle: false,
+                        cursorOffset: Offset(0, 50),
+                        cursorLabelBoxColor: Colors.green,
+                      ),
                       cursorPosition: this._cursorPosition,
                       lines: [
                         LineValue(
