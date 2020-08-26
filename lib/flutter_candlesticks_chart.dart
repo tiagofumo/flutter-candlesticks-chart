@@ -348,37 +348,39 @@ class _CandleStickChartPainter extends CustomPainter {
       if (!fullscreenGridLine) {
         width = size.width - valueLabelWidth;
       }
-      double gridLineDist = height / (gridLineAmount - 1);
-      double gridLineY;
+      double gridLineY = height;
 
-      double gridLineValue;
+      var gridLinesValues = GridLineHelper.getHorizontalGridLines(
+        max: _max,
+        min: _min,
+        minLineCount: gridLineAmount,
+      ); 
       // Draw grid lines
-      for (int i = 0; i < gridLineAmount; i++) {
-        gridLineY = (gridLineDist * i).round().toDouble();
-        if (fullscreenGridLine) {
-          // draw lines, text will be painted afterwards in order to put it over candles
-          var gridLineY = (gridLineDist * i).round().toDouble();
-          canvas.drawLine(
-            Offset(0, gridLineY),
-            Offset(size.width, gridLineY),
-            gridLinePaint
-          );
-        } else {
-          gridLineValue = _max - (((_max - _min) / (gridLineAmount - 1)) * i);
-          _drawValueLabel(
-            canvas: canvas,
-            size: size,
-            value: gridLineValue,
-            lineColor: gridLineColor,
-            boxColor: Colors.transparent,
-            textColor: gridLineLabelColor,
-            lineWidth: gridLineWidth,
-            dashed: false,
-          );
-        }
-      }
+      gridLinesValues.forEach((e) {
+        _drawValueLabel(
+          canvas: canvas,
+          size: size,
+          value: e,
+          lineColor: gridLineColor,
+          boxColor: Colors.transparent,
+          textColor: gridLineLabelColor,
+          lineWidth: gridLineWidth,
+          dashed: false,
+          gridLineExtraWidth: 5,
+        );
+      });
       
       double quoteBorderX = size.width - valueLabelWidth;
+      canvas.drawLine(
+        Offset(0, 0),
+        Offset(quoteBorderX, 0),
+        gridLinePaint
+      );
+      canvas.drawLine(
+        Offset(0, gridLineY),
+        Offset(quoteBorderX, gridLineY),
+        gridLinePaint
+      );
       canvas.drawLine(
         Offset(quoteBorderX, 0),
         Offset(quoteBorderX, gridLineY),
@@ -847,6 +849,7 @@ class _CandleStickChartPainter extends CustomPainter {
     Color boxColor = Colors.black,
     Color textColor = Colors.white,
     bool dashed = false,
+    double gridLineExtraWidth = 0,
   }) {
     final double chartHeight = size.height * (1 - volumeProp);
     var y = (chartHeight * (value - _min)) / (_max - _min);
@@ -878,7 +881,7 @@ class _CandleStickChartPainter extends CustomPainter {
     } else {
       canvas.drawLine(
         Offset(0, y),
-        Offset(size.width - valueLabelWidth, y),
+        Offset(size.width - valueLabelWidth + gridLineExtraWidth, y),
         paint,
       );
     }
@@ -1268,7 +1271,96 @@ class ChartVerticalLineDate {
   ChartVerticalLineDate({this.dateTime, this.label, this.index});
 }
 
+class _GridLineValueScore {
+  final double value;
+  final double score;
+  _GridLineValueScore({
+    this.value,
+    this.score,
+  });
+}
+
 class GridLineHelper {
+  static List<double> getHorizontalGridLines({
+    @required double max,
+    @required double min,
+    @required int minLineCount,
+    int maxLineCount,
+  }) {
+    max = (max * 100).floorToDouble() / 100;
+    min = (min * 100).floorToDouble() / 100;
+    var diff = max - min;
+    double increment = 1;
+    int multiplier = 1;
+    var newMin = min;
+    if (diff <= 3) {
+      increment = 0.10;
+    } else if (diff > 100) {
+      multiplier = math.pow(10, diff.floor().toString().length - 2);
+      newMin = (min / multiplier).floorToDouble() * multiplier;
+    }
+    List<_GridLineValueScore> values = [];
+    for (double i = 0; i * multiplier + newMin < max; i += increment) {
+      var value = i * multiplier + newMin;
+      var characters = value.toStringAsFixed(2).characters.toList();
+      int score = 0;
+      for (var j = 0; j < characters.length; j++) {
+        var c = characters[j];
+        // var scoreMultiplier = math.pow(10, characters.length - j);
+        var scoreMultiplier = characters.length - j;
+        switch (c) {
+          case '0':
+            score += 9 * scoreMultiplier;
+            break;
+          case '5':
+            score += 6 * scoreMultiplier;
+            break;
+          // case '2':
+          // case '7':
+          //   score += 1 * scoreMultiplier;
+          //   break;
+          default:
+            if (c != '.' && score > 0) {
+              score -= 9 * scoreMultiplier;
+            }
+            break;
+        }
+      }
+      values.add(
+        _GridLineValueScore(
+          value: value,
+          score: score.toDouble()
+        )
+      );
+    }
+    values.sort((_GridLineValueScore a, _GridLineValueScore b) {
+      return a.score.compareTo(b.score) * -1;
+    });
+    var minScore = values[minLineCount - 1].score;
+    List<_GridLineValueScore> filteredValues = [];
+    for (var i = 0; i < values.length && values[i].score >= minScore; i++) {
+      filteredValues.add(values[i]);
+    }
+    var orderedValues = filteredValues.map((a) => (a.value * 100).floorToDouble() / 100).toList();
+    orderedValues.sort((double a, double b) => a.compareTo(b));
+    double minStep = double.infinity;
+    for (var i = 1; i < orderedValues.length; i++) {
+      var step = orderedValues[i] - orderedValues[i - 1];
+      if (step < minStep) {
+        minStep = step;
+      }
+    }
+    List<double> output = [];
+    double highestNumber = orderedValues.last;
+    for (var i = highestNumber; i < max ; i += minStep) {
+      highestNumber = i;
+    }
+    for (var i = highestNumber; i >= newMin && i >= min; i -= minStep) {
+      output.add((i * 100).floorToDouble() / 100);
+    }
+    return output.reversed.toList();
+  }
+
   static List<ChartVerticalLineDate> getVerticalLinesDates({
     List<DateTime> dates,
     int nDates = 4,

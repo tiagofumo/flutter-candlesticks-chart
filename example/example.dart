@@ -123,6 +123,12 @@ class _MyAppState extends State<MyApp> {
                 ),
                 Container(
                   child: GestureDetector(
+                    onLongPressStart: (detail) {
+                      setCursorPosition(detail.localPosition);
+                    },
+                    onLongPressMoveUpdate: (detail) {
+                      setCursorPosition(detail.localPosition);
+                    },
                     onTapDown: (detail) {
                       setCursorPosition(detail.localPosition);
                     },
@@ -147,11 +153,14 @@ class _MyAppState extends State<MyApp> {
                     onHorizontalDragEnd: (detail) {
                       clearCursor();
                     },
+                    onLongPressEnd: (detail) {
+                      clearCursor();
+                    },
                     child: CandleStickChart(
                       data: widget.data,
                       fallbackHeight: 400,
                       enableGridLines: true,
-                      gridLineAmount: 5,
+                      gridLineAmount: 4,
                       volumeProp: 0.2,
                       volumeSectionOffset: 22,
                       labelPrefix: ' R\$ ',

@@ -20,7 +20,7 @@ List<DateTime> getDateList(DateTime startDate, DateTime endDate) {
   return dates;
 }
 
-void getVerticalLinesDatesTests() {
+void testGetVerticalLinesDates() {
   test('Test getVerticalLineDates different years', () {
     var endDate = DateTime.parse('20200809');
     var startDate = DateTime.parse('20180505');
@@ -62,7 +62,7 @@ void getVerticalLinesDatesTests() {
   });
 }
 
-void getVolumeGridLinesTests() {
+void testGetVolumeGridLines() {
   test('Test getVolumeGridLinesTests', () {
     var expectedValues = [
       [1200000000, [1000000000, 500000000]],
@@ -89,8 +89,57 @@ void getVolumeGridLinesTests() {
   });
 }
 
+
+void testGetHorizontalGridLines() {
+  test('Test getHorizontalGridLines', () {
+    var lines = GridLineHelper.getHorizontalGridLines(
+      max: 102000,
+      min: 79000,
+      minLineCount: 4,
+    );
+    expect(lines, [80000.0, 85000.0, 90000.0, 95000.0, 100000.0]);
+    lines = GridLineHelper.getHorizontalGridLines(
+      max: 10.50,
+      min: 5,
+      minLineCount: 4,
+    );
+    expect(lines, [5.0, 6.0, 7.0, 8.0, 9.0, 10.0]);
+    lines = GridLineHelper.getHorizontalGridLines(
+      max: 3.70,
+      min: 3.10,
+      minLineCount: 4,
+    );
+    expect(lines, [3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7]);
+    lines = GridLineHelper.getHorizontalGridLines(
+      max: 1258049.494460039,
+      min: 995157.6981393362,
+      minLineCount: 4,
+    );
+    expect(lines, [1000000.0, 1050000.0, 1100000.0, 1150000.0, 1200000.0, 1250000.0]);
+    lines = GridLineHelper.getHorizontalGridLines(
+      max: 1144565.568979,
+      min: 941157.6981393362,
+      minLineCount: 4,
+    );
+    expect(lines, [950000.0, 1000000.0, 1050000.0, 1100000.0]);
+    lines = GridLineHelper.getHorizontalGridLines(
+      max: 1051565.568979,
+      min: 882157.6981393362,
+      minLineCount: 4,
+    );
+    expect(lines, [900000.0, 950000.0, 1000000.0, 1050000.0]);
+    lines = GridLineHelper.getHorizontalGridLines(
+      max: 1101931.568979,
+      min: 970243.6981393362,
+      minLineCount: 4,
+    );
+    expect(lines, [975000.0, 1000000.0, 1025000.0, 1050000.0, 1075000.0, 1100000.0]);
+  });
+}
+
 void main() {
-  getVerticalLinesDatesTests();
-  getVolumeGridLinesTests();
+  testGetVerticalLinesDates();
+  testGetVolumeGridLines();
+  testGetHorizontalGridLines();
   // TODO: Add tests with matchesReferenceImage
 }
