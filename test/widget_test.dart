@@ -103,13 +103,13 @@ void testGetHorizontalGridLines() {
       min: 5,
       minLineCount: 4,
     );
-    expect(lines, [5.0, 6.0, 7.0, 8.0, 9.0, 10.0]);
+    expect(lines, [6.0, 7.0, 8.0, 9.0, 10.0]);
     lines = GridLineHelper.getHorizontalGridLines(
       max: 3.70,
       min: 3.10,
       minLineCount: 4,
     );
-    expect(lines, [3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7]);
+    expect(lines, [3.2, 3.3, 3.4, 3.5, 3.6]);
     lines = GridLineHelper.getHorizontalGridLines(
       max: 1258049.494460039,
       min: 995157.6981393362,
@@ -133,7 +133,7 @@ void testGetHorizontalGridLines() {
       min: 970243.6981393362,
       minLineCount: 4,
     );
-    expect(lines, [975000.0, 1000000.0, 1025000.0, 1050000.0, 1075000.0, 1100000.0]);
+    expect(lines, [1000000.0, 1030000.0, 1060000.0, 1090000.0]);
   });
 }
 

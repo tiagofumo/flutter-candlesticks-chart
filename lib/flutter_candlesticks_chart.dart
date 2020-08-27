@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -1271,13 +1272,8 @@ class ChartVerticalLineDate {
   ChartVerticalLineDate({this.dateTime, this.label, this.index});
 }
 
-class _GridLineValueScore {
-  final double value;
-  final double score;
-  _GridLineValueScore({
-    this.value,
-    this.score,
-  });
+double roundToFixed(double d, [int n = 2]) {
+  return (d * 100).roundToDouble() / 100;
 }
 
 class GridLineHelper {
@@ -1299,14 +1295,13 @@ class GridLineHelper {
       multiplier = math.pow(10, diff.floor().toString().length - 2);
       newMin = (min / multiplier).floorToDouble() * multiplier;
     }
-    List<_GridLineValueScore> values = [];
+    var valueScores = HashMap<double, double>();
     for (double i = 0; i * multiplier + newMin < max; i += increment) {
-      var value = i * multiplier + newMin;
+      var value = roundToFixed(i * multiplier + newMin);
       var characters = value.toStringAsFixed(2).characters.toList();
       int score = 0;
       for (var j = 0; j < characters.length; j++) {
         var c = characters[j];
-        // var scoreMultiplier = math.pow(10, characters.length - j);
         var scoreMultiplier = characters.length - j;
         switch (c) {
           case '0':
@@ -1315,10 +1310,6 @@ class GridLineHelper {
           case '5':
             score += 6 * scoreMultiplier;
             break;
-          // case '2':
-          // case '7':
-          //   score += 1 * scoreMultiplier;
-          //   break;
           default:
             if (c != '.' && score > 0) {
               score -= 9 * scoreMultiplier;
@@ -1326,39 +1317,44 @@ class GridLineHelper {
             break;
         }
       }
-      values.add(
-        _GridLineValueScore(
-          value: value,
-          score: score.toDouble()
-        )
-      );
+      valueScores[value] = roundToFixed(score.toDouble());
     }
-    values.sort((_GridLineValueScore a, _GridLineValueScore b) {
-      return a.score.compareTo(b.score) * -1;
+
+    var stepScores = HashMap<double, double>();
+    var stepValues =  HashMap<double, List<double>>();
+    var values = valueScores.keys.toList();
+    values.sort((double valueA, double valueB) {
+      return valueScores[valueA].compareTo(valueScores[valueB]) * -1;
     });
-    var minScore = values[minLineCount - 1].score;
-    List<_GridLineValueScore> filteredValues = [];
-    for (var i = 0; i < values.length && values[i].score >= minScore; i++) {
-      filteredValues.add(values[i]);
-    }
-    var orderedValues = filteredValues.map((a) => (a.value * 100).floorToDouble() / 100).toList();
-    orderedValues.sort((double a, double b) => a.compareTo(b));
-    double minStep = double.infinity;
-    for (var i = 1; i < orderedValues.length; i++) {
-      var step = orderedValues[i] - orderedValues[i - 1];
-      if (step < minStep) {
-        minStep = step;
+    for (var i = 0; i < values.length - 1; i++) {
+      var valuesToMeasure = values.skip(i + 1).toList();
+      for (var j = 0; j < valuesToMeasure.length; j++) {
+        var step = roundToFixed((valuesToMeasure[j] - values[i]).abs());
+        var stepScore = stepScores[step];
+        if (stepScore != null && stepScore > 0 ) {
+          continue;
+        }
+        var rangeFloor = values[i];
+        for (var k = rangeFloor - step; k > min; k -= step) {
+          rangeFloor = k;
+        }
+        stepScore = 0; 
+        stepValues[step] = [];
+        for (var k = rangeFloor; k < max; k += step) {
+          k = (k * 100).round() / 100;
+          stepScore += valueScores[k];
+          stepValues[step].add(k);
+        }
+        stepScores[step] = stepScore / stepValues[step].length; 
       }
     }
-    List<double> output = [];
-    double highestNumber = orderedValues.last;
-    for (var i = highestNumber; i < max ; i += minStep) {
-      highestNumber = i;
-    }
-    for (var i = highestNumber; i >= newMin && i >= min; i -= minStep) {
-      output.add((i * 100).floorToDouble() / 100);
-    }
-    return output.reversed.toList();
+    var steps = stepScores.keys.where((double step) {
+      return stepValues[step].length >= minLineCount;
+    }).toList();
+    steps.sort((double stepA, double stepB) {
+      return stepScores[stepA].compareTo(stepScores[stepB]);
+    });
+    return stepValues[steps.last];
   }
 
   static List<ChartVerticalLineDate> getVerticalLinesDates({
