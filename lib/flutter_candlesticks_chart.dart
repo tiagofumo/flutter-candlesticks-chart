@@ -1283,16 +1283,17 @@ class GridLineHelper {
     @required int minLineCount,
     int maxLineCount,
   }) {
-    max = (max * 100).floorToDouble() / 100;
-    min = (min * 100).floorToDouble() / 100;
+    max = roundToFixed(max);
+    min = roundToFixed(min);
     var diff = max - min;
     double increment = 1;
     int multiplier = 1;
+    int multiplierPower = 3;
     var newMin = min;
     if (diff <= 3) {
       increment = 0.10;
-    } else if (diff > 100) {
-      multiplier = math.pow(10, diff.floor().toString().length - 2);
+    } else if (diff > math.pow(10, multiplier)) {
+      multiplier = math.pow(10, diff.floor().toString().length - multiplierPower);
       newMin = (min / multiplier).floorToDouble() * multiplier;
     }
     var valueScores = HashMap<double, double>();
