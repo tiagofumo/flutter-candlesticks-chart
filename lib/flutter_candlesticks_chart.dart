@@ -24,7 +24,7 @@ class CandleStickChart extends StatelessWidget {
     this.increaseColor = Colors.green,
     this.decreaseColor = Colors.red,
     this.volumeSectionOffset = 0,
-    this.lines = const [],
+    this.lineValues = const [],
     this.formatValueLabelFn,
     this.formatValueLabelWithK = false,
     this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
@@ -88,7 +88,7 @@ class CandleStickChart extends StatelessWidget {
   final ValueLabelBoxType valueLabelBoxType; 
 
   // draw lines on chart
-  final List<LineValue> lines;
+  final List<LineValue> lineValues;
 
   /// formatFn is applyed to all values displyed on chart if provided
   final FormatFn formatValueLabelFn;
@@ -103,7 +103,7 @@ class CandleStickChart extends StatelessWidget {
 
   ChartInfoBoxStyle infoBoxStyle;
 
-  Offset cursorPosition;
+  final Offset cursorPosition;
 
   final CandleChartCursorStyle cursorStyle;
 
@@ -132,7 +132,7 @@ class CandleStickChart extends StatelessWidget {
           volumeSectionOffset: volumeSectionOffset,
           valueLabelBoxType: valueLabelBoxType,
           xAxisLabelCount: xAxisLabelCount,
-          lines: lines,
+          lineValues: lineValues,
           formatValueLabelFn: formatValueLabelFn,
           formatValueLabelWithK: formatValueLabelWithK,
           fullscreenGridLine: fullscreenGridLine,
@@ -170,7 +170,7 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.pointsMappingX,
     @required this.pointsMappingY,
     @required this.xAxisLabelCount,
-    @required this.lines,
+    @required this.lineValues,
     @required this.infoBoxStyle,
     @required this.formatValueLabelWithK,
     @required this.formatValueLabelFn,
@@ -195,7 +195,7 @@ class _CandleStickChartPainter extends CustomPainter {
   final ValueLabelBoxType valueLabelBoxType;
   final List<_ChartPointMapping> pointsMappingX;
   final List<_ChartPointMapping> pointsMappingY;
-  final List<LineValue> lines;
+  final List<LineValue> lineValues;
   final double volumeSectionOffset;
   final bool formatValueLabelWithK;
 
@@ -320,7 +320,7 @@ class _CandleStickChartPainter extends CustomPainter {
       }
     }
 
-    for (var l in lines) {
+    for (var l in lineValues) {
       if (l.value > _max) {
         _max = l.value;
       }
@@ -619,7 +619,7 @@ class _CandleStickChartPainter extends CustomPainter {
     }
 
     // draw custom lines
-    for (var line in this.lines) {
+    for (var line in this.lineValues) {
       _drawValueLabel(
         canvas: canvas,
         size: size,
@@ -1030,7 +1030,7 @@ class _CandleStickChartPainter extends CustomPainter {
       volumeProp != old.volumeProp ||
       gridLineLabelColor != old.gridLineLabelColor ||
       !cursorStyle.equalTo(old.cursorStyle) ||
-      lines.hashCode != old.lines.hashCode ||
+      lineValues.hashCode != old.lineValues.hashCode ||
       cursorPosition.dx != old.cursorPosition.dx ||
       cursorPosition.dy != old.cursorPosition.dy;
   }

@@ -176,7 +176,7 @@ class _MyAppState extends State<MyApp> {
                         cursorLabelBoxColor: Colors.green,
                       ),
                       cursorPosition: this._cursorPosition,
-                      lines: [
+                      lineValues: [
                         LineValue(
                           value: lastData.close,
                           lineColor: lineColor,
