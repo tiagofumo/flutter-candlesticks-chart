@@ -1,12 +1,66 @@
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_candlesticks_chart/flutter_candlesticks_chart.dart';
+import 'package:intl/intl.dart' as intl;
 
 void main() {
-  runApp(MyApp(
-    data: generateData()
-  ));
+  var data = generateData();
+  runApp(
+    MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.grey,
+          title: Text('Flutter candlestick chart'),
+        ),
+        body: MyApp(
+          data: data,
+          assetEventCollections: generateEvents(data)
+        ),
+      ),
+    ),
+  );
+}
+
+List<AssetEventCollection> generateEvents(List<CandleStickChartData> data) {
+  return [
+    AssetEventCollection(
+      dateTime: data[(data.length/3).floor()].dateTime,
+      assetEvents: [
+        AssetEvent(
+          type: AssetEventType.ernings,
+          description: 'Earnings for quarter',
+          link: 'LINK_TO_FILE',
+        ),
+        AssetEvent(
+          type: AssetEventType.notice,
+          description: 'Notice to the market',
+          link: 'LINK_TO_FILE',
+        ),
+      ],
+    ),
+    AssetEventCollection(
+      dateTime: data[(data.length/2).floor()].dateTime,
+      assetEvents: [
+        AssetEvent(
+          type: AssetEventType.dividends,
+          description: 'Dividends',
+          link: 'LINK_TO_FILE',
+        ),
+      ],
+    ),
+    AssetEventCollection(
+      dateTime: data[(2*data.length/3).floor()].dateTime,
+      assetEvents: [
+        AssetEvent(
+          type: AssetEventType.split,
+          description: 'Stock Split 1:4',
+          link: 'LINK_TO_FILE',
+        ),
+      ],
+    )
+  ];
 }
 
 List<CandleStickChartData> generateData() {
@@ -46,8 +100,10 @@ List<CandleStickChartData> generateData() {
 class MyApp extends StatefulWidget {
   MyApp({
     @required this.data,
+    this.assetEventCollections = const [],
   });
   final List<CandleStickChartData> data;
+  final List<AssetEventCollection> assetEventCollections;
 
   @override
   _MyAppState createState() => _MyAppState();
@@ -56,6 +112,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool _darkMode = true;
   Offset _cursorPosition = Offset(-1, -1);
+  var assetEventCollectionsMap = HashMap<DateTime, AssetEventCollection>();
 
   void setCursorPosition(Offset newPosition) {
     setState(() {
@@ -69,8 +126,112 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  Function(ChartEvent) buildDialog(BuildContext buildContext) {
+    return (ChartEvent chartEvent) async {
+      var assetEventCollection = assetEventCollectionsMap[chartEvent.dateTime];
+      var assetEvents = assetEventCollection.assetEvents;
+      var modalTextFontSize = 14.0;
+      var bodyTextStyle = TextStyle(
+        color: Colors.white, 
+        fontSize: modalTextFontSize,
+        fontWeight: FontWeight.normal,
+      );
+      var titleTextStyle = TextStyle(
+        color: Colors.white,
+        fontSize: modalTextFontSize,
+        fontWeight: FontWeight.bold,
+      );
+      List<Widget> widgetList = [];
+      // var padding = assetEvents.length == 1 ? 10 : 8;
+      var padding = 20;
+      for (var i = 0; i < assetEvents.length; i++) {
+        var assetEvent = assetEvents[i];
+        String eventTitle;
+        switch(assetEvent.type) {
+          case AssetEventType.ernings:
+            eventTitle = 'Earnings';
+            break;
+          case AssetEventType.dividends:
+            eventTitle = 'Dividends';
+            break;
+          case AssetEventType.split:
+            eventTitle = 'Split';
+            break;
+          case AssetEventType.notice:
+            eventTitle = 'Notice to the market';
+            break;
+        }
+        eventTitle += ' - ' + intl.DateFormat('dd/MM/yyyy').format(assetEventCollection.dateTime);
+        widgetList.add(
+          Container(
+            padding: EdgeInsets.all(padding.toDouble()),
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(eventTitle, style: titleTextStyle),
+                Container(height: 2, width: double.infinity,),
+                Text(assetEvent.description, style: bodyTextStyle),
+              ],
+            ),
+          )
+        );
+        widgetList.add(
+          Container(
+            color: Colors.black,
+            height: 1,
+            width: double.infinity
+          )
+        );
+      }
+      widgetList.removeLast();
+      var modalContainer = Container(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.min,
+          children: widgetList,
+        ),
+      );
+      await showDialog(
+        context: buildContext,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900],
+            contentPadding: EdgeInsets.all(0),
+            content: modalContainer,
+          );
+        },
+      ).then((_) {
+        // must clear cursor to avoid bugs
+        clearCursor();
+      });
+    };
+  }
+
+  String getCircleLetter(AssetEventType type) {
+    switch(type) {
+      case AssetEventType.ernings:
+        return 'E';
+        break;
+      case AssetEventType.dividends:
+        return 'D';
+        break;
+      case AssetEventType.split:
+        return 'S';
+        break;
+      case AssetEventType.notice:
+        return 'N';
+        break;
+      default:
+        throw Exception('Unnadentified type');
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    var data = widget.data;
+    var assetEventCollections = widget.assetEventCollections;
     String buttonText;
     ChartInfoBoxStyle infoBoxStyle;
     Color backgroundColor, cursorColor;
@@ -94,103 +255,158 @@ class _MyAppState extends State<MyApp> {
       high: "Máxima",
       low: "Mínima",
     );
-    return (
-      MaterialApp(
-        home: Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.grey,
-            title: Text('Flutter candlestick chart'),
-          ),
-          body: Container(
-            color: backgroundColor,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Container(
-                  width: 200.0,
-                  child: RaisedButton(
-                    child: Center(
-                      child: Text(
-                        buttonText,
-                      ),
-                    ),
-                    onPressed: () {
-                      this.setState(() {
-                        this._darkMode = !this._darkMode;
-                      });
-                    }
-                  ),
-                ),
-                Container(
-                  child: GestureDetector(
-                    onLongPressStart: (detail) {
-                      setCursorPosition(detail.localPosition);
-                    },
-                    onLongPressMoveUpdate: (detail) {
-                      setCursorPosition(detail.localPosition);
-                    },
-                    onTapDown: (detail) {
-                      setCursorPosition(detail.localPosition);
-                    },
-                    onHorizontalDragStart: (detail) {
-                      setCursorPosition(detail.localPosition);
-                    },
-                    onHorizontalDragUpdate: (detail) {
-                      setCursorPosition(detail.localPosition);
-                    },
-                    onVerticalDragStart: (detail) {
-                      setCursorPosition(detail.localPosition);
-                    },
-                    onVerticalDragUpdate: (detail) {
-                      setCursorPosition(detail.localPosition);
-                    },
-                    onTapUp: (detail) {
-                      clearCursor();
-                    },
-                    onVerticalDragEnd: (detail) {
-                      clearCursor();
-                    },
-                    onHorizontalDragEnd: (detail) {
-                      clearCursor();
-                    },
-                    onLongPressEnd: (detail) {
-                      clearCursor();
-                    },
-                    child: CandleStickChart(
-                      data: widget.data,
-                      fallbackHeight: 400,
-                      enableGridLines: true,
-                      gridLineAmount: 4,
-                      volumeProp: 0.2,
-                      volumeSectionOffset: 22,
-                      labelPrefix: ' R\$ ',
-                      valueLabelBoxType: ValueLabelBoxType.arrowTag,
-                      showXAxisLabel: true,
-                      formatValueLabelWithK: true,
-                      xAxisLabelCount: 4,
-                      infoBoxStyle: infoBoxStyle,
-                      cursorStyle: CandleChartCursorStyle(
-                        cursorColor: cursorColor,
-                        showCursorCircle: false,
-                        cursorOffset: Offset(0, 50),
-                        cursorLabelBoxColor: Colors.green,
-                      ),
-                      cursorPosition: this._cursorPosition,
-                      lineValues: [
-                        LineValue(
-                          value: lastData.close,
-                          lineColor: lineColor,
-                          dashed: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+
+    var chartEvents = List<ChartEvent>();
+    for (var assetEventCollection in assetEventCollections) {
+      var dateTime = assetEventCollection.dateTime;
+      assetEventCollectionsMap[dateTime] = assetEventCollection;
+      var assetEvents = assetEventCollection.assetEvents;
+      String circleText;
+      var eventType = assetEvents.first.type;
+      if (assetEvents.length > 1 && !assetEvents.every((e) => e.type == eventType)) {
+        circleText = assetEvents.length.toString();
+      } else {
+        circleText = getCircleLetter(eventType);
+      }
+      chartEvents.add(
+        ChartEvent(
+          dateTime: dateTime,
+          circleText: circleText, 
+          fn: this.buildDialog(context),
         )
+      );
+    }
+    return (
+      Container(
+        color: backgroundColor,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Container(
+              width: 200.0,
+              child: RaisedButton(
+                child: Center(
+                  child: Text(
+                    buttonText,
+                  ),
+                ),
+                onPressed: () {
+                  this.setState(() {
+                    this._darkMode = !this._darkMode;
+                  });
+                }
+              ),
+            ),
+            Container(
+              child: GestureDetector(
+                onLongPressStart: (detail) {
+                  setCursorPosition(detail.localPosition);
+                },
+                onLongPressMoveUpdate: (detail) {
+                  setCursorPosition(detail.localPosition);
+                },
+                onTapDown: (detail) {
+                  setCursorPosition(detail.localPosition);
+                },
+                onHorizontalDragStart: (detail) {
+                  setCursorPosition(detail.localPosition);
+                },
+                onHorizontalDragUpdate: (detail) {
+                  setCursorPosition(detail.localPosition);
+                },
+                onVerticalDragStart: (detail) {
+                  setCursorPosition(detail.localPosition);
+                },
+                onVerticalDragUpdate: (detail) {
+                  setCursorPosition(detail.localPosition);
+                },
+                onTapUp: (detail) {
+                  clearCursor();
+                },
+                onVerticalDragEnd: (detail) {
+                  clearCursor();
+                },
+                onHorizontalDragEnd: (detail) {
+                  clearCursor();
+                },
+                onLongPressEnd: (detail) {
+                  clearCursor();
+                },
+                child: CandleStickChart(
+                  data: data,
+                  fallbackHeight: 400,
+                  enableGridLines: true,
+                  gridLineAmount: 4,
+                  volumeProp: 0.2,
+                  volumeSectionOffset: 22,
+                  labelPrefix: ' R\$ ',
+                  valueLabelBoxType: ValueLabelBoxType.arrowTag,
+                  showXAxisLabel: true,
+                  formatValueLabelWithK: true,
+                  xAxisLabelCount: 4,
+                  infoBoxStyle: infoBoxStyle,
+                  cursorStyle: CandleChartCursorStyle(
+                    cursorColor: cursorColor,
+                    showCursorCircle: false,
+                    cursorOffset: Offset(0, 50),
+                    cursorLabelBoxColor: Colors.green,
+                  ),
+                  cursorPosition: this._cursorPosition,
+                  lineValues: [
+                    LineValue(
+                      value: lastData.close,
+                      lineColor: lineColor,
+                      dashed: true,
+                    ),
+                  ],
+                  chartEvents: chartEvents,
+                  chartEventStyle: ChartEventStyle(
+                    textStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    circleRadius: 13,
+                    circlePaint: Paint()
+                      ..color = Colors.orange
+                      ..style = PaintingStyle.fill,
+                    circleBorderPaint: Paint()
+                      ..color = Colors.orange[50]
+                      ..style = PaintingStyle.stroke,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       )
     );
   }
+}
+
+class AssetEventCollection {
+  AssetEventCollection({
+    @required this.dateTime,
+    @required this.assetEvents,
+  });
+  final DateTime dateTime;
+  final List<AssetEvent> assetEvents;
+}
+
+class AssetEvent {
+  AssetEvent({
+    @required this.type,
+    @required this.description,
+    this.link,
+  });
+  final AssetEventType type;
+  final String description;
+  final String link;
+}
+
+enum AssetEventType {
+  ernings,
+  dividends,
+  split,
+  notice,
 }

@@ -34,6 +34,8 @@ class CandleStickChart extends StatelessWidget {
     this.cursorPosition,
     this.infoBoxStyle,
     this.cursorStyle = const CandleChartCursorStyle(),
+    this.chartEvents = const [],
+    this.chartEventStyle,
   }) : super(key: key) {
     assert(data != null);
     if (fullscreenGridLine) {
@@ -109,6 +111,10 @@ class CandleStickChart extends StatelessWidget {
 
   final List<_ChartPointMapping> pointsMappingX = List();
   final List<_ChartPointMapping> pointsMappingY = List();
+  final List<ChartEvent> chartEvents;
+  final List<Rect> eventRects = List();
+
+  final ChartEventStyle chartEventStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +148,9 @@ class CandleStickChart extends StatelessWidget {
           pointsMappingX: pointsMappingX,
           pointsMappingY: pointsMappingY,
           cursorStyle: cursorStyle,
+          chartEvents: chartEvents,
+          eventRects: eventRects,
+          chartEventStyle: chartEventStyle,
         ),
       ),
     );
@@ -178,6 +187,9 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.showXAxisLabels,
     @required this.cursorPosition,
     @required this.cursorStyle,
+    @required this.chartEvents,
+    @required this.eventRects,
+    @required this.chartEventStyle,
   });
 
   final List<CandleStickChartData> data;
@@ -229,6 +241,11 @@ class _CandleStickChartPainter extends CustomPainter {
   final double xAxisLabelWidth = 60;
   final double xAxisLabelHeight = 20;
 
+  final List<ChartEvent> chartEvents;
+  final List<Rect> eventRects;
+
+  final ChartEventStyle chartEventStyle;
+
   void clearCursor() {
     _cursorX = -1;
     _cursorY = -1;
@@ -275,6 +292,16 @@ class _CandleStickChartPainter extends CustomPainter {
           position.dy - cursorOffset.dy < 0 ||
           position.dx - cursorOffset.dx > cursorMaxX) {
       clearCursor();
+      for (var j = 0; j < eventRects.length; j++) {
+        if (eventRects[j].contains(position)) {
+          var eventGroup = chartEvents[j];
+          if (eventGroup.fn != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              eventGroup.fn(eventGroup);
+            });
+          }
+        }
+      }
       return;
     }
 
@@ -512,6 +539,40 @@ class _CandleStickChartPainter extends CustomPainter {
           );
         });
       }
+    }
+
+    // Draw chart events
+    double eventsCircleRadius = chartEventStyle.circleRadius;
+    double circleMargin = volumeHeight * 0.02;
+    chartEvents.sort((ChartEvent a, ChartEvent b) {
+      return a.dateTime.compareTo(b.dateTime);
+    });
+    var chartEventsWithMappings = List<_ChartEventWithMappings>();
+    int j = 0;
+    for (var i = 0; i < data.length && j < chartEvents.length; i++) {
+      if (chartEvents[j].dateTime == data[i].dateTime) {
+        chartEventsWithMappings.add(
+          _ChartEventWithMappings(
+            chartEventGroup: chartEvents[j],
+            mapping: pointsMappingX[i],
+          )
+        );
+        j++;
+      }
+    }
+
+    eventRects.clear();
+    for (var i = 0; i < chartEventsWithMappings.length; i++) {
+      // loop through groups and render
+      var mapping = chartEventsWithMappings[i].mapping;
+      double eventX = (mapping.from + mapping.to)/2;
+      double eventY = size.height - circleMargin - eventsCircleRadius;
+      eventRects.add(
+        Rect.fromCircle(
+          center: Offset(eventX, eventY),
+          radius: eventsCircleRadius
+        ),
+      );
     }
 
     if (cursorPosition == null
@@ -798,6 +859,40 @@ class _CandleStickChartPainter extends CustomPainter {
           infoBoxLeft + infoBoxMargin + infoBoxBorderWidth + infoBoxPadding,
           infoBoxTop + infoBoxMargin + infoBoxBorderWidth + infoBoxPadding,
         )
+      );
+    }
+
+    for (var i = 0; i < chartEventsWithMappings.length; i++) {
+      // loop through groups and render
+      var eventGroup = chartEventsWithMappings[i].chartEventGroup;
+      var mapping = chartEventsWithMappings[i].mapping;
+      double eventX = (mapping.from + mapping.to)/2;
+      double eventY = size.height - circleMargin - eventsCircleRadius;
+      canvas.drawCircle(
+        Offset(eventX, eventY),
+        eventsCircleRadius,
+        chartEventStyle.circlePaint
+      );
+      canvas.drawCircle(
+        Offset(eventX, eventY),
+        eventsCircleRadius,
+        chartEventStyle.circleBorderPaint
+      );
+      var textPainter = TextPainter(
+        textDirection: TextDirection.ltr,
+        text: TextSpan(
+          text: eventGroup.circleText,
+          style: chartEventStyle.textStyle,
+        )
+      )..layout(
+        maxWidth: 10,
+      );
+      textPainter.paint(
+        canvas,
+        Offset(
+          eventX - textPainter.size.width / 2,
+          eventY - textPainter.size.height / 2,
+        ),
       );
     }
   }
@@ -1456,4 +1551,38 @@ class GridLineHelper {
       return [firstNum * pow10];
     }
   }
+}
+
+class ChartEvent {
+  ChartEvent({
+    @required this.dateTime,
+    @required this.circleText,
+    @required this.fn,
+  });
+
+  final DateTime dateTime;
+  final String circleText;
+  final void Function(ChartEvent eg) fn;
+}
+
+class _ChartEventWithMappings {
+  _ChartEventWithMappings({
+    @required this.chartEventGroup,
+    @required this.mapping,
+  });
+  final ChartEvent chartEventGroup;
+  final _ChartPointMapping mapping;
+}
+
+class ChartEventStyle {
+  ChartEventStyle({
+    this.textStyle,
+    this.circleRadius,
+    this.circlePaint,
+    this.circleBorderPaint,
+  });
+  final TextStyle textStyle;
+  final double circleRadius;
+  final Paint circlePaint;
+  final Paint circleBorderPaint;
 }
