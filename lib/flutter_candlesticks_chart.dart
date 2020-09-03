@@ -283,7 +283,6 @@ class _ChartBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // TODO: implement paint
     final double volumeHeight = size.height * volumeProp;
     final double volumeNormalizer = (volumeHeight - volumeSectionOffset) / maxVolume;
 
@@ -350,7 +349,6 @@ class _ChartBackgroundPainter extends CustomPainter {
 
       // Label volume line
       if (volumeProp > 0) {
-        // TODO: GET STARTX
         double startX = 0;
         var lineYTop = gridLineY + volumeSectionOffset;
         var endX = size.width;
