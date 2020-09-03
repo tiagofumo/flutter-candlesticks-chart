@@ -7,66 +7,44 @@ import 'dart:math' as math;
 
 import 'package:intl/intl.dart' as intl;
 
-class CandleStickChart extends StatelessWidget {
+class CandleStickChart extends StatefulWidget {
   CandleStickChart({
     Key key,
     @required this.data,
-    this.lineWidth = 1.0,
     this.fallbackHeight = 100.0,
     this.fallbackWidth = 300.0,
-    this.gridLineColor = Colors.grey,
-    this.gridLineAmount = 5,
-    this.gridLineWidth = 0.5,
-    this.gridLineLabelColor = Colors.grey,
-    this.labelPrefix = "\$",
+    this.gridLineStyle,
+    this.candleSticksStyle,
     @required this.enableGridLines,
     @required this.volumeProp,
-    this.increaseColor = Colors.green,
-    this.decreaseColor = Colors.red,
-    this.volumeSectionOffset = 0,
     this.lineValues = const [],
     this.formatValueLabelFn,
     this.formatValueLabelWithK = false,
-    this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
-    this.xAxisLabelCount = 3,
-    this.fullscreenGridLine = false,
-    this.showXAxisLabel = false,
     this.cursorPosition,
     this.infoBoxStyle,
     this.cursorStyle = const CandleChartCursorStyle(),
     this.chartEvents = const [],
     this.chartEventStyle,
+    this.loadingWidget,
   }) : super(key: key) {
     assert(data != null);
-    if (fullscreenGridLine) {
+    if (gridLineStyle.fullscreenGridLine) {
       assert(enableGridLines);
     }
     if (formatValueLabelFn != null) {
       assert(!formatValueLabelWithK);
-    }
-    if (infoBoxStyle == null) {
-      infoBoxStyle = ChartInfoBoxThemes.getLightTheme();
     }
   }
 
   // final List data;
   final List<CandleStickChartData> data;
 
-  /// All lines in chart are drawn with this width
-  final double lineWidth;
+  final ChartGridLineStyle gridLineStyle;
 
   /// Enable or disable grid lines
   final bool enableGridLines;
 
-  /// Color of grid lines and label text
-  final Color gridLineColor;
-  final Color gridLineLabelColor;
-
-  /// Number of grid lines
-  final int gridLineAmount;
-
-  /// Width of grid lines
-  final double gridLineWidth;
+  final CandleSticksStyle candleSticksStyle;
 
   /// Proportion of paint to be given to volume bar graph
   final double volumeProp;
@@ -76,95 +54,171 @@ class CandleStickChart extends StatelessWidget {
   final double fallbackHeight;
   final double fallbackWidth;
 
-  /// Symbol prefix for grid line labels
-  final String labelPrefix;
-
-  /// Increase color
-  final Color increaseColor;
-
-  /// Decrease color
-  final Color decreaseColor;
-
-  final double volumeSectionOffset; 
-
-  final ValueLabelBoxType valueLabelBoxType; 
-
   // draw lines on chart
   final List<LineValue> lineValues;
 
   /// formatFn is applyed to all values displyed on chart if provided
   final FormatFn formatValueLabelFn;
 
-  final int xAxisLabelCount;
-
-  final bool fullscreenGridLine;
-
-  final bool showXAxisLabel;
-
   final bool formatValueLabelWithK;
 
-  ChartInfoBoxStyle infoBoxStyle;
+  final ChartInfoBoxStyle infoBoxStyle;
 
   final Offset cursorPosition;
 
   final CandleChartCursorStyle cursorStyle;
 
-  final List<_ChartPointMapping> pointsMappingX = List();
-  final List<_ChartPointMapping> pointsMappingY = List();
   final List<ChartEvent> chartEvents;
+  final ChartEventStyle chartEventStyle;
+
+  final Widget loadingWidget;
+
+  @override
+  _CandleStickChartState createState() => _CandleStickChartState();
+}
+
+class _CandleStickChartState extends State<CandleStickChart> {
+  final List<_ChartPointMapping> pointsMappingX = List();
+
+  final List<_ChartPointMapping> pointsMappingY = List();
+
   final List<Rect> eventRects = List();
 
-  final ChartEventStyle chartEventStyle;
+  Picture backgroundPicture;
+  _ChartBackgroundPainter backgroundPainter;
+
+  Size parentSize;
+
+  double _maxValue;
+  double _minValue;
+  double _maxVolume;
 
   @override
   Widget build(BuildContext context) {
-    return new LimitedBox(
-      maxHeight: fallbackHeight,
-      maxWidth: fallbackWidth,
-      child: CustomPaint(
-        size: Size.infinite,
-        painter: new _CandleStickChartPainter(
-          data,
-          lineWidth: lineWidth,
-          gridLineColor: gridLineColor,
-          gridLineAmount: gridLineAmount,
-          gridLineWidth: gridLineWidth,
-          gridLineLabelColor: gridLineLabelColor,
-          enableGridLines: enableGridLines,
-          volumeProp: volumeProp,
-          labelPrefix: labelPrefix,
-          increaseColor: increaseColor,
-          decreaseColor: decreaseColor,
-          volumeSectionOffset: volumeSectionOffset,
-          valueLabelBoxType: valueLabelBoxType,
-          xAxisLabelCount: xAxisLabelCount,
-          lineValues: lineValues,
-          formatValueLabelFn: formatValueLabelFn,
-          formatValueLabelWithK: formatValueLabelWithK,
-          fullscreenGridLine: fullscreenGridLine,
-          showXAxisLabels: showXAxisLabel,
-          infoBoxStyle: infoBoxStyle,
-          cursorPosition: cursorPosition,
-          pointsMappingX: pointsMappingX,
-          pointsMappingY: pointsMappingY,
-          cursorStyle: cursorStyle,
-          chartEvents: chartEvents,
-          eventRects: eventRects,
-          chartEventStyle: chartEventStyle,
-        ),
-      ),
+    if (parentSize == null) {
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+       setState(() {
+         parentSize = context.size;
+        });
+      });
+    }
+    var infoBoxStyle = widget.infoBoxStyle;
+    if (infoBoxStyle == null) {
+      infoBoxStyle = ChartInfoBoxThemes.getLightTheme();
+    }
+    var data = widget.data;
+    var lineValues = widget.lineValues;
+
+    // Calculate minValue, maxValue and maxVolume
+    _minValue = double.infinity;
+    _maxValue = -double.infinity;
+    _maxVolume = -double.infinity;
+    for (var i in data) {
+      if (i.high > _maxValue) {
+        _maxValue = i.high.toDouble();
+      }
+      if (i.low < _minValue) {
+        _minValue = i.low.toDouble();
+      }
+      if (i.volume > _maxVolume) {
+        _maxVolume = i.volume.toDouble();
+      }
+    }
+    for (var l in lineValues) {
+      if (l.value > _maxValue) {
+        _maxValue = l.value;
+      }
+      if (l.value < _minValue) {
+        _minValue = l.value;
+      }
+    }
+
+    var newBackgroundPainter = _ChartBackgroundPainter(
+      data,
+      shadowLineWidth: widget.candleSticksStyle.shadowLineWidth,
+      gridLineColor: widget.gridLineStyle.gridLineColor,
+      gridLineAmount: widget.gridLineStyle.gridLineAmount,
+      gridLineWidth: widget.gridLineStyle. gridLineWidth,
+      gridLineLabelColor: widget.gridLineStyle.gridLineLabelColor,
+      enableGridLines: widget.enableGridLines,
+      volumeProp: widget.volumeProp,
+      labelPrefix: widget.candleSticksStyle.labelPrefix,
+      increaseColor: widget.candleSticksStyle.increaseColor,
+      decreaseColor: widget.candleSticksStyle.decreaseColor,
+      volumeSectionOffset: widget.candleSticksStyle.volumeSectionOffset,
+      valueLabelBoxType: widget.candleSticksStyle.valueLabelBoxType,
+      xAxisLabelCount: widget.gridLineStyle.xAxisLabelCount,
+      lineValues: lineValues,
+      formatValueLabelFn: widget.formatValueLabelFn,
+      formatValueLabelWithK: widget.formatValueLabelWithK,
+      fullscreenGridLine: widget.gridLineStyle.fullscreenGridLine,
+      showXAxisLabels: widget.gridLineStyle.showXAxisLabels,
+      pointsMappingX: pointsMappingX,
+      pointsMappingY: pointsMappingY,
+      chartEvents: widget.chartEvents,
+      eventRects: eventRects,
+      chartEventStyle: widget.chartEventStyle,
+      maxValue: _maxValue,
+      minValue: _minValue,
+      maxVolume: _maxVolume,
     );
+    if ((backgroundPainter == null || 
+        newBackgroundPainter.shouldRepaint(backgroundPainter) ||
+        backgroundPicture == null) &&
+        parentSize != null) {
+      backgroundPainter = newBackgroundPainter;
+      var recorder = PictureRecorder();
+
+      var canvas = Canvas(recorder, Rect.fromLTWH(0, 0, parentSize.width, parentSize.height));
+      backgroundPainter.paint(canvas, parentSize);
+
+      setState(() {
+        backgroundPicture = recorder.endRecording();
+      });
+    }
+
+    if (backgroundPicture == null) {
+      if (widget.loadingWidget == null) {
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      } else {
+        return widget.loadingWidget;
+      }
+    }
+    return CustomPaint(
+      size: Size.infinite,
+      painter: _CandleStickChartPainter(
+        widget.data,
+        volumeProp: widget.volumeProp,
+        labelPrefix: widget.candleSticksStyle.labelPrefix,
+        valueLabelBoxType: widget.candleSticksStyle.valueLabelBoxType,
+        formatValueLabelFn: widget.formatValueLabelFn,
+        formatValueLabelWithK: widget.formatValueLabelWithK,
+        pointsMappingX: pointsMappingX,
+        pointsMappingY: pointsMappingY,
+        chartEvents: widget.chartEvents,
+        eventRects: eventRects,
+        maxValue: _maxValue,
+        minValue: _minValue,
+        maxVolume: _maxVolume,
+        infoBoxStyle: widget.infoBoxStyle,
+        cursorPosition: widget.cursorPosition,
+        cursorStyle: widget.cursorStyle,
+        backgroundPicture: backgroundPicture,
+      ),
+    ); 
   }
 }
 
-typedef FormatFn = String Function(double val);
-
-typedef XAxisLabelFormatFn = String Function(DateTime date);
-
-class _CandleStickChartPainter extends CustomPainter {
-  _CandleStickChartPainter(
+class _ChartBackgroundPainter extends CustomPainter {
+  _ChartBackgroundPainter(
     this.data, {
-    @required this.lineWidth,
+    @required this.shadowLineWidth,
     @required this.enableGridLines,
     @required this.gridLineColor,
     @required this.gridLineAmount,
@@ -180,20 +234,20 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.pointsMappingY,
     @required this.xAxisLabelCount,
     @required this.lineValues,
-    @required this.infoBoxStyle,
     @required this.formatValueLabelWithK,
     @required this.formatValueLabelFn,
     @required this.fullscreenGridLine,
     @required this.showXAxisLabels,
-    @required this.cursorPosition,
-    @required this.cursorStyle,
     @required this.chartEvents,
     @required this.eventRects,
     @required this.chartEventStyle,
+    @required this.maxValue,
+    @required this.minValue,
+    @required this.maxVolume,
   });
 
   final List<CandleStickChartData> data;
-  final double lineWidth;
+  final double shadowLineWidth;
   final bool enableGridLines;
   final Color gridLineColor;
   final int gridLineAmount;
@@ -217,23 +271,6 @@ class _CandleStickChartPainter extends CustomPainter {
   final bool fullscreenGridLine;
   final bool showXAxisLabels;
 
-  final ChartInfoBoxStyle infoBoxStyle;
-
-  final Offset cursorPosition;
-
-  final CandleChartCursorStyle cursorStyle;
-
-  double _min;
-  double _max;
-  double _maxVolume;
-
-  double _cursorX = -1;
-  double _cursorY = -1;
-  double _cursorYPrice = 0;
-  int _cursorXTime = 0;
-
-  CandleStickChartData _selectedData;
-
   final double valueLabelWidth = 60.0;
   final double valueLabelFontSize = 10.0;
   final double valueLabelHeight = 20.0; // this must be valueLabelFontSize*2
@@ -242,128 +279,20 @@ class _CandleStickChartPainter extends CustomPainter {
   final double xAxisLabelHeight = 20;
 
   final List<ChartEvent> chartEvents;
-  final List<Rect> eventRects;
 
   final ChartEventStyle chartEventStyle;
 
-  void clearCursor() {
-    _cursorX = -1;
-    _cursorY = -1;
-  }
+  final List<Rect> eventRects;
 
-  void _onPositionUpdate(Offset position, Size size) {
-    // find candle index by coords
-    var i = pointsMappingX.indexWhere(
-        (el) => position.dx >= el.from && position.dx <= el.to);
-    if (i == -1) {
-      // candle is out of range or we are in candle padding
-      i = pointsMappingX.indexWhere((el) => position.dx <= el.to);
-      var i2 = pointsMappingX.indexWhere((el) => el.from >= position.dx);
-      if (i == -1) {
-        // out of range max, select the last candle
-        i = pointsMappingX.length - 1;
-      } else if (i2 <= 0) {
-        // out of range min, select the first candle
-        i = 0;
-      } else {
-        // find the nearest candle
-        i2 -= 1; // il grande x minore di from
-        var delta1 = (position.dx - pointsMappingX[i].from).abs();
-        var delta2 = (position.dx - pointsMappingX[i2].to).abs();
-        if (delta2 < delta1) {
-          i = i2;
-        }
-      }
-    }
-    // update x cursor
-    var el = pointsMappingX.elementAt(i);
-    var widgetHeight = size.height;
-    var cursorMaxX = size.width - valueLabelWidth;
-    var cursorOffset = cursorStyle.cursorOffset;
-    var myYPosition =
-        (position.dy - widgetHeight + (widgetHeight * volumeProp)) * -1;
-    myYPosition += cursorOffset.dy;
-
-    // calc chartHeight without volume part
-    final double chartHeight = size.height * (1 - volumeProp);
-    var positionPrice = (((_max - _min) * myYPosition) / chartHeight) + _min;
-
-    if (position.dy - cursorOffset.dy > chartHeight ||
-          position.dy - cursorOffset.dy < 0 ||
-          position.dx - cursorOffset.dx > cursorMaxX) {
-      clearCursor();
-      for (var j = 0; j < eventRects.length; j++) {
-        if (eventRects[j].contains(position)) {
-          var eventGroup = chartEvents[j];
-          if (eventGroup.fn != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              eventGroup.fn(eventGroup);
-            });
-          }
-        }
-      }
-      return;
-    }
-
-    if (cursorStyle.cursorJumpToCandleCenter) {
-      // set cursorx at the middle of the candle
-      _cursorX = (el.from + el.to) / 2;
-    } else {
-      _cursorX = position.dx;
-    }
-
-    _cursorY = position.dy;
-    data[i].selectedPrice = positionPrice;
-
-    _cursorY -= cursorOffset.dy;
-    _cursorYPrice = data[i].selectedPrice;
-    _cursorXTime = data[i].dateTime.millisecondsSinceEpoch;
-    _selectedData = data[i];
-  }
-
-  numCommaParse(double n) {
-    if (this.formatValueLabelFn != null) {
-      return this.formatValueLabelFn(n);
-    }
-    if (this.formatValueLabelWithK) {
-      return CandleStickChartValueFormat.formatPricesWithK(n); 
-    }
-    return CandleStickChartValueFormat.formatPricesWithComma(n);
-  }
-
-  update() {
-    _min = double.infinity;
-    _max = -double.infinity;
-    _maxVolume = -double.infinity;
-    for (var i in data) {
-      if (i.high > _max) {
-        _max = i.high.toDouble();
-      }
-      if (i.low < _min) {
-        _min = i.low.toDouble();
-      }
-      if (i.volume > _maxVolume) {
-        _maxVolume = i.volume.toDouble();
-      }
-    }
-
-    for (var l in lineValues) {
-      if (l.value > _max) {
-        _max = l.value;
-      }
-      if (l.value < _min) {
-        _min = l.value;
-      }
-    }
-  }
+  final double maxValue;
+  final double minValue;
+  final double maxVolume;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (_min == null || _max == null || _maxVolume == null) {
-      update();
-    }
+    // TODO: implement paint
     final double volumeHeight = size.height * volumeProp;
-    final double volumeNormalizer = (volumeHeight - volumeSectionOffset) / _maxVolume;
+    final double volumeNormalizer = (volumeHeight - volumeSectionOffset) / maxVolume;
 
     double width = size.width;
     final double height = size.height * (1 - volumeProp);
@@ -379,13 +308,13 @@ class _CandleStickChartPainter extends CustomPainter {
       double gridLineY = height;
 
       var gridLinesValues = GridLineHelper.getHorizontalGridLines(
-        max: _max,
-        min: _min,
+        max: maxValue,
+        min: minValue,
         minLineCount: gridLineAmount,
       ); 
       // Draw grid lines
       gridLinesValues.forEach((e) {
-        _drawValueLabel(
+        _CandleStickChartHelper.drawValueLabel(
           canvas: canvas,
           size: size,
           value: e,
@@ -395,6 +324,17 @@ class _CandleStickChartPainter extends CustomPainter {
           lineWidth: gridLineWidth,
           dashed: false,
           gridLineExtraWidth: 5,
+          fullscreenGridLine: fullscreenGridLine,
+          labelPrefix: labelPrefix,
+          maxValue: maxValue,
+          minValue: minValue,
+          valueLabelBoxType: valueLabelBoxType,
+          valueLabelFontSize: valueLabelFontSize,
+          valueLabelHeight: valueLabelHeight,
+          valueLabelWidth: valueLabelWidth,
+          volumeProp: volumeProp,
+          formatValueLabelFn: formatValueLabelFn,
+          formatValueLabelWithK: formatValueLabelWithK,
         );
       });
       
@@ -421,9 +361,9 @@ class _CandleStickChartPainter extends CustomPainter {
         double startX = 0;
         var lineYTop = gridLineY + volumeSectionOffset;
         var endX = size.width;
-        var volumeGridLinesList = GridLineHelper.getVolumeGridLines([], max: _maxVolume);
+        var volumeGridLinesList = GridLineHelper.getVolumeGridLines([], max: maxVolume);
         volumeGridLinesList.forEach((volumeGridLineValue) {
-          var lineY = size.height - (volumeGridLineValue / _maxVolume) * (size.height - lineYTop);
+          var lineY = size.height - (volumeGridLineValue / maxVolume) * (size.height - lineYTop);
           _drawVolumeValueLabel(
             canvas: canvas,
             startX: startX,
@@ -433,6 +373,15 @@ class _CandleStickChartPainter extends CustomPainter {
             lineColor: gridLineColor,
             textColor: gridLineLabelColor,
             lineWidth: gridLineWidth,
+            fullscreenGridLine: fullscreenGridLine,
+            labelPrefix: labelPrefix,
+            maxValue: maxValue,
+            minValue: minValue,
+            valueLabelBoxType: valueLabelBoxType,
+            valueLabelFontSize: valueLabelFontSize,
+            valueLabelHeight: valueLabelHeight,
+            valueLabelWidth: valueLabelWidth,
+            volumeProp: volumeProp,
           );
         });
         endX -= valueLabelWidth;
@@ -472,7 +421,7 @@ class _CandleStickChartPainter extends CustomPainter {
       }
     }
 
-    final double heightNormalizer = height / (_max - _min);
+    final double heightNormalizer = height / (maxValue - minValue);
     final double rectWidth = width / data.length;
 
     double rectLeft;
@@ -486,8 +435,8 @@ class _CandleStickChartPainter extends CustomPainter {
     pointsMappingY.clear();
 
     for (int i = 0; i < data.length; i++) {
-      rectLeft = (i * rectWidth) + lineWidth / 2;
-      rectRight = ((i + 1) * rectWidth) - lineWidth / 2;
+      rectLeft = (i * rectWidth) + shadowLineWidth/ 2;
+      rectRight = ((i + 1) * rectWidth) - shadowLineWidth / 2;
       pointsMappingX.add(
         _ChartPointMapping(
           from: rectLeft,
@@ -496,8 +445,8 @@ class _CandleStickChartPainter extends CustomPainter {
       );
     }
     // draw x axis value labels
-    if (this.showXAxisLabels) {
-      var nLabels = this.xAxisLabelCount;
+    if (showXAxisLabels) {
+      var nLabels = xAxisLabelCount;
       if (data.length > nLabels) {
         var dates = data.map((d) => d.dateTime).toList();
         var lineDates = GridLineHelper.getVerticalLinesDates(
@@ -516,9 +465,10 @@ class _CandleStickChartPainter extends CustomPainter {
             gridLineLabelPaint
           );
 
-          final Paragraph paragraph = _getParagraphBuilderFromString(
+          final Paragraph paragraph = _CandleStickChartHelper.getParagraphBuilderFromString(
             value: lineDate.label,
-            textColor: gridLineLabelColor
+            textColor: gridLineLabelColor,
+            fontSize: valueLabelFontSize,
           ).build()..layout(
             ParagraphConstraints(
               width: paragraphWidth,
@@ -575,29 +525,21 @@ class _CandleStickChartPainter extends CustomPainter {
       );
     }
 
-    if (cursorPosition == null
-        || cursorPosition.dx == -1
-        || cursorPosition.dy == -1) {
-      clearCursor();
-    } else {
-      _onPositionUpdate(cursorPosition, size);
-    }
-
     // Loop through all data
     for (int i = 0; i < data.length; i++) {
       rectLeft = pointsMappingX[i].from;
       rectRight = pointsMappingX[i].to;
       double volumeBarTop = (height + volumeHeight) -
-        (data[i].volume * volumeNormalizer - lineWidth / 2);
-      double volumeBarBottom = height + volumeHeight + lineWidth / 2;
+        (data[i].volume * volumeNormalizer - shadowLineWidth/ 2);
+      double volumeBarBottom = height + volumeHeight + shadowLineWidth / 2;
 
       if (data[i].open > data[i].close) {
         // Draw candlestick if decrease
-        rectTop = height - (data[i].open - _min) * heightNormalizer;
-        rectBottom = height - (data[i].close - _min) * heightNormalizer;
+        rectTop = height - (data[i].open - minValue) * heightNormalizer;
+        rectBottom = height - (data[i].close - minValue) * heightNormalizer;
         rectPaint = new Paint()
           ..color = decreaseColor
-          ..strokeWidth = lineWidth;
+          ..strokeWidth = shadowLineWidth;
 
         Rect ocRect =
             new Rect.fromLTRB(rectLeft, rectTop, rectRight, rectBottom);
@@ -611,13 +553,13 @@ class _CandleStickChartPainter extends CustomPainter {
         candleVerticalLinePaint..color = decreaseColor;
       } else {
         // Draw candlestick if increase
-        rectTop = (height - (data[i].close - _min) * heightNormalizer) +
-            lineWidth / 2;
-        rectBottom = (height - (data[i].open - _min) * heightNormalizer) -
-            lineWidth / 2;
+        rectTop = (height - (data[i].close - minValue) * heightNormalizer) +
+            shadowLineWidth / 2;
+        rectBottom = (height - (data[i].open - minValue) * heightNormalizer) -
+            shadowLineWidth / 2;
         rectPaint = new Paint()
           ..color = increaseColor
-          ..strokeWidth = lineWidth;
+          ..strokeWidth = shadowLineWidth;
 
         Rect ocRect =
           new Rect.fromLTRB(rectLeft, rectTop, rectRight, rectBottom);
@@ -636,15 +578,15 @@ class _CandleStickChartPainter extends CustomPainter {
       }
 
       // Draw low/high candlestick wicks
-      double low = height - (data[i].low - _min) * heightNormalizer;
-      double high = height - (data[i].high - _min) * heightNormalizer;
+      double low = height - (data[i].low - minValue) * heightNormalizer;
+      double high = height - (data[i].high - minValue) * heightNormalizer;
       canvas.drawLine(
-        new Offset(rectLeft + rectWidth / 2 - lineWidth / 2, rectBottom),
-        new Offset(rectLeft + rectWidth / 2 - lineWidth / 2, low),
+        new Offset(rectLeft + rectWidth / 2 - shadowLineWidth / 2, rectBottom),
+        new Offset(rectLeft + rectWidth / 2 - shadowLineWidth / 2, low),
         candleVerticalLinePaint);
       canvas.drawLine(
-        new Offset(rectLeft + rectWidth / 2 - lineWidth / 2, rectTop),
-        new Offset(rectLeft + rectWidth / 2 - lineWidth / 2, high),
+        new Offset(rectLeft + rectWidth / 2 - shadowLineWidth/ 2, rectTop),
+        new Offset(rectLeft + rectWidth / 2 - shadowLineWidth / 2, high),
         candleVerticalLinePaint);
       // add to pointsMapping
       pointsMappingY.add(
@@ -659,16 +601,20 @@ class _CandleStickChartPainter extends CustomPainter {
       for (int i = 0; i < gridLineAmount; i++) {
         double gridLineDist = height / (gridLineAmount - 1);
         var gridLineY = (gridLineDist * i).round().toDouble();
-        var gridLineValue = _max - (((_max - _min) / (gridLineAmount - 1)) * i);
+        var gridLineValue = maxValue - (((maxValue - minValue) / (gridLineAmount - 1)) * i);
         // draw value paragraphs
         final Paragraph paragraph =
-          _getParagraphBuilderFromDouble(gridLineValue, gridLineLabelColor)
-            .build()
-              ..layout(
-                ParagraphConstraints(
-                  width: valueLabelWidth,
-                ),
-              );
+          _CandleStickChartHelper.getParagraphBuilderFromDouble(
+            value: gridLineValue,
+            textColor: gridLineLabelColor,
+            fontSize: valueLabelFontSize,
+            labelPrefix: labelPrefix,
+          ).build()
+            ..layout(
+              ParagraphConstraints(
+                width: valueLabelWidth,
+              ),
+            );
         canvas.drawParagraph(
           paragraph,
           Offset(
@@ -681,7 +627,7 @@ class _CandleStickChartPainter extends CustomPainter {
 
     // draw custom lines
     for (var line in this.lineValues) {
-      _drawValueLabel(
+      _CandleStickChartHelper.drawValueLabel(
         canvas: canvas,
         size: size,
         value: line.value,
@@ -690,13 +636,289 @@ class _CandleStickChartPainter extends CustomPainter {
         textColor: line.textColor,
         lineWidth: line.lineWidth,
         dashed: line.dashed,
+        fullscreenGridLine: fullscreenGridLine,
+        labelPrefix: labelPrefix,
+        maxValue: maxValue,
+        minValue: minValue,
+        valueLabelBoxType: valueLabelBoxType,
+        valueLabelFontSize: valueLabelFontSize,
+        valueLabelHeight: valueLabelHeight,
+        valueLabelWidth: valueLabelWidth,
+        volumeProp: volumeProp,
+        formatValueLabelFn: formatValueLabelFn,
+        formatValueLabelWithK: formatValueLabelWithK,
       );
     }
+    for (var i = 0; i < chartEventsWithMappings.length; i++) {
+      // loop through groups and render
+      var eventGroup = chartEventsWithMappings[i].chartEventGroup;
+      var mapping = chartEventsWithMappings[i].mapping;
+      double eventX = (mapping.from + mapping.to)/2;
+      double eventY = size.height - circleMargin - eventsCircleRadius;
+      canvas.drawCircle(
+        Offset(eventX, eventY),
+        eventsCircleRadius,
+        chartEventStyle.circlePaint
+      );
+      canvas.drawCircle(
+        Offset(eventX, eventY),
+        eventsCircleRadius,
+        chartEventStyle.circleBorderPaint
+      );
+      var textPainter = TextPainter(
+        textDirection: TextDirection.ltr,
+        text: TextSpan(
+          text: eventGroup.circleText,
+          style: chartEventStyle.textStyle,
+        )
+      )..layout(
+        maxWidth: 10,
+      );
+      textPainter.paint(
+        canvas,
+        Offset(
+          eventX - textPainter.size.width / 2,
+          eventY - textPainter.size.height / 2,
+        ),
+      );
+    }
+  }
+  
+  static void _drawVolumeValueLabel({
+    @required Canvas canvas,
+    @required double startX,
+    @required double endX,
+    @required double lineY,
+    @required double value,
+    @required double lineWidth,
+    @required double volumeProp,
+    @required double minValue,
+    @required double maxValue,
+    @required bool fullscreenGridLine,
+    @required double valueLabelWidth,
+    @required ValueLabelBoxType valueLabelBoxType,
+    @required double valueLabelHeight,
+    @required double valueLabelFontSize,
+    @required String labelPrefix,
+    Color lineColor = Colors.black,
+    Color textColor = Colors.white,
+  }) {
+    var label = CandleStickChartValueFormat.formatPricesWithAllLetters(value);
+    var textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+      text: TextSpan(
+        text: "  " + label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: valueLabelFontSize,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    )..layout(
+      minWidth: valueLabelWidth,
+      maxWidth: valueLabelWidth,
+    );
+    canvas.drawLine(
+      Offset(startX, lineY),
+      Offset(endX - valueLabelWidth, lineY),
+      Paint()
+        ..color = lineColor
+        ..strokeWidth = lineWidth
+    );
+    textPainter.paint(
+      canvas,
+      Offset(endX - valueLabelWidth, lineY - valueLabelFontSize / 2)
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ChartBackgroundPainter old) {
+    bool equalLineValues = true;
+    if (lineValues.length != old.lineValues.length) {
+      equalLineValues = false;
+    } else {
+      for (var i = 0; i < lineValues.length; i++) {
+        var lineValue = lineValues[i];
+        var oldLineValue = old.lineValues[i];
+        if (lineValue.value != oldLineValue.value ||
+            lineValue.textColor != oldLineValue.textColor ||
+            lineValue.lineColor != oldLineValue.lineColor ||
+            lineValue.lineWidth != oldLineValue.lineWidth ||
+            lineValue.dashed != oldLineValue.dashed) {
+          equalLineValues = false;
+        }
+      }
+    }
+    return data != old.data ||
+      shadowLineWidth != old.shadowLineWidth ||
+      enableGridLines != old.enableGridLines ||
+      gridLineColor != old.gridLineColor ||
+      gridLineAmount != old.gridLineAmount ||
+      gridLineWidth != old.gridLineWidth ||
+      volumeProp != old.volumeProp ||
+      gridLineLabelColor != old.gridLineLabelColor ||
+      !equalLineValues;
+  }
+}
+
+typedef FormatFn = String Function(double val);
+
+typedef XAxisLabelFormatFn = String Function(DateTime date);
+
+class _CandleStickChartPainter extends CustomPainter {
+  _CandleStickChartPainter(
+    this.data, {
+    @required this.labelPrefix,
+    @required this.valueLabelBoxType,
+    @required this.volumeProp,
+    @required this.pointsMappingX,
+    @required this.pointsMappingY,
+    @required this.infoBoxStyle,
+    @required this.formatValueLabelWithK,
+    @required this.formatValueLabelFn,
+    @required this.cursorPosition,
+    @required this.cursorStyle,
+    @required this.chartEvents,
+    @required this.eventRects,
+    @required this.maxValue,
+    @required this.minValue,
+    @required this.maxVolume,
+    @required this.backgroundPicture,
+  });
+
+  final List<CandleStickChartData> data;
+
+  final double volumeProp;
+  final String labelPrefix;
+
+  final ValueLabelBoxType valueLabelBoxType;
+  final List<_ChartPointMapping> pointsMappingX;
+  final List<_ChartPointMapping> pointsMappingY;
+  final bool formatValueLabelWithK;
+
+  final FormatFn formatValueLabelFn;
+
+  final ChartInfoBoxStyle infoBoxStyle;
+
+  final Offset cursorPosition;
+
+  final CandleChartCursorStyle cursorStyle;
+
+  final double minValue;
+  final double maxValue;
+  final double maxVolume;
+
+  double _cursorX = -1;
+  double _cursorY = -1;
+  double _cursorYPrice = 0;
+  int _cursorXTime = 0;
+
+  CandleStickChartData _selectedData;
+
+  final double valueLabelWidth = 60.0;
+  final double valueLabelFontSize = 10.0;
+  final double valueLabelHeight = 20.0; // this must be valueLabelFontSize*2
+
+  final double xAxisLabelWidth = 60;
+  final double xAxisLabelHeight = 20;
+
+  final List<ChartEvent> chartEvents;
+  final List<Rect> eventRects;
+
+  final Picture backgroundPicture;
+
+  void clearCursor() {
+    _cursorX = -1;
+    _cursorY = -1;
+  }
+
+  void _onPositionUpdate(Offset position, Size size) {
+    // find candle index by coords
+    var i = pointsMappingX.indexWhere(
+        (el) => position.dx >= el.from && position.dx <= el.to);
+    if (i == -1) {
+      // candle is out of range or we are in candle padding
+      i = pointsMappingX.indexWhere((el) => position.dx <= el.to);
+      var i2 = pointsMappingX.indexWhere((el) => el.from >= position.dx);
+      if (i == -1) {
+        // out of range max, select the last candle
+        i = pointsMappingX.length - 1;
+      } else if (i2 <= 0) {
+        // out of range min, select the first candle
+        i = 0;
+      } else {
+        // find the nearest candle
+        i2 -= 1; // il grande x minore di from
+        var delta1 = (position.dx - pointsMappingX[i].from).abs();
+        var delta2 = (position.dx - pointsMappingX[i2].to).abs();
+        if (delta2 < delta1) {
+          i = i2;
+        }
+      }
+    }
+    // update x cursor
+    var el = pointsMappingX.elementAt(i);
+    var widgetHeight = size.height;
+    var cursorMaxX = size.width - valueLabelWidth;
+    var cursorOffset = cursorStyle.cursorOffset;
+    var myYPosition =
+        (position.dy - widgetHeight + (widgetHeight * volumeProp)) * -1;
+    myYPosition += cursorOffset.dy;
+
+    // calc chartHeight without volume part
+    final double chartHeight = size.height * (1 - volumeProp);
+    var positionPrice = (((maxValue - minValue) * myYPosition) / chartHeight) + minValue;
+
+    if (position.dy - cursorOffset.dy > chartHeight ||
+          position.dy - cursorOffset.dy < 0 ||
+          position.dx - cursorOffset.dx > cursorMaxX) {
+      clearCursor();
+      for (var j = 0; j < eventRects.length; j++) {
+        if (eventRects[j].contains(position)) {
+          var eventGroup = chartEvents[j];
+          if (eventGroup.fn != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              eventGroup.fn(eventGroup);
+            });
+          }
+        }
+      }
+      return;
+    }
+
+    if (cursorStyle.cursorJumpToCandleCenter) {
+      // set cursorx at the middle of the candle
+      _cursorX = (el.from + el.to) / 2;
+    } else {
+      _cursorX = position.dx;
+    }
+
+    _cursorY = position.dy;
+    data[i].selectedPrice = positionPrice;
+
+    _cursorY -= cursorOffset.dy;
+    _cursorYPrice = data[i].selectedPrice;
+    _cursorXTime = data[i].dateTime.millisecondsSinceEpoch;
+    _selectedData = data[i];
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+
+    canvas.drawPicture(backgroundPicture);
+
+    if (cursorPosition == null
+        || cursorPosition.dx == -1
+        || cursorPosition.dy == -1) {
+      clearCursor();
+    } else {
+      _onPositionUpdate(cursorPosition, size);
+    }
+    final double volumeHeight = size.height * volumeProp;
 
     var cursorPaint = Paint()
       ..color = cursorStyle.cursorColor
       ..strokeWidth = cursorStyle.cursorLineWidth;
-    
 
     // draw cursor circle
     if (cursorStyle.showCursorCircle && _cursorX != -1 && _cursorY != -1) {
@@ -744,9 +966,10 @@ class _CandleStickChartPainter extends CustomPainter {
         Paint()..color = cursorStyle.cursorLabelBoxColor
       );
       var cursorDateTime = DateTime.fromMillisecondsSinceEpoch(_cursorXTime);
-      final Paragraph paragraph = _getParagraphBuilderFromString(
+      final Paragraph paragraph = _CandleStickChartHelper.getParagraphBuilderFromString(
         value: intl.DateFormat(cursorStyle.cursorXAxisFormatString).format(cursorDateTime),
-        textColor: cursorStyle.cursorTextColor
+        textColor: cursorStyle.cursorTextColor,
+        fontSize: valueLabelFontSize,
       ).build()
       ..layout(
         ParagraphConstraints(
@@ -764,7 +987,7 @@ class _CandleStickChartPainter extends CustomPainter {
 
     if (_cursorY != -1) {
       // draw cursor horizontal line
-      _drawValueLabel(
+      _CandleStickChartHelper.drawValueLabel(
         canvas: canvas,
         size: size,
         value: _cursorYPrice,
@@ -773,6 +996,17 @@ class _CandleStickChartPainter extends CustomPainter {
         textColor: cursorStyle.cursorTextColor,
         lineWidth: cursorStyle.cursorLineWidth,
         dashed: cursorStyle.cursorLineDashed,
+        fullscreenGridLine: false,
+        labelPrefix: labelPrefix,
+        maxValue: maxValue,
+        minValue: minValue,
+        valueLabelBoxType: valueLabelBoxType,
+        valueLabelFontSize: valueLabelFontSize,
+        valueLabelHeight: valueLabelHeight,
+        valueLabelWidth: valueLabelWidth,
+        volumeProp: volumeProp,
+        formatValueLabelFn: formatValueLabelFn,
+        formatValueLabelWithK: formatValueLabelWithK,
       );
       
       var infoBoxBackgroundColor = infoBoxStyle.backgroundColor
@@ -861,271 +1095,13 @@ class _CandleStickChartPainter extends CustomPainter {
         )
       );
     }
-
-    for (var i = 0; i < chartEventsWithMappings.length; i++) {
-      // loop through groups and render
-      var eventGroup = chartEventsWithMappings[i].chartEventGroup;
-      var mapping = chartEventsWithMappings[i].mapping;
-      double eventX = (mapping.from + mapping.to)/2;
-      double eventY = size.height - circleMargin - eventsCircleRadius;
-      canvas.drawCircle(
-        Offset(eventX, eventY),
-        eventsCircleRadius,
-        chartEventStyle.circlePaint
-      );
-      canvas.drawCircle(
-        Offset(eventX, eventY),
-        eventsCircleRadius,
-        chartEventStyle.circleBorderPaint
-      );
-      var textPainter = TextPainter(
-        textDirection: TextDirection.ltr,
-        text: TextSpan(
-          text: eventGroup.circleText,
-          style: chartEventStyle.textStyle,
-        )
-      )..layout(
-        maxWidth: 10,
-      );
-      textPainter.paint(
-        canvas,
-        Offset(
-          eventX - textPainter.size.width / 2,
-          eventY - textPainter.size.height / 2,
-        ),
-      );
-    }
-  }
-
-  void _drawVolumeValueLabel({
-    @required Canvas canvas,
-    @required double startX,
-    @required double endX,
-    @required double lineY,
-    @required double value,
-    @required double lineWidth,
-    Color lineColor = Colors.black,
-    Color textColor = Colors.white,
-  }) {
-    var label = CandleStickChartValueFormat.formatPricesWithAllLetters(value);
-    var textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-      text: TextSpan(
-        text: "  " + label,
-        style: TextStyle(
-          color: textColor,
-          fontSize: valueLabelFontSize,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    )..layout(
-      minWidth: valueLabelWidth,
-      maxWidth: valueLabelWidth,
-    );
-    canvas.drawLine(
-      Offset(startX, lineY),
-      Offset(endX - valueLabelWidth, lineY),
-      Paint()
-        ..color = lineColor
-        ..strokeWidth = lineWidth
-    );
-    textPainter.paint(
-      canvas,
-      Offset(endX - valueLabelWidth, lineY - valueLabelFontSize / 2)
-    );
-  }
-
-  // draws line and value box over x-axis
-  void _drawValueLabel({
-    @required Canvas canvas,
-    @required Size size,
-    @required double value,
-    @required double lineWidth,
-    Color lineColor = Colors.black,
-    Color boxColor = Colors.black,
-    Color textColor = Colors.white,
-    bool dashed = false,
-    double gridLineExtraWidth = 0,
-  }) {
-    final double chartHeight = size.height * (1 - volumeProp);
-    var y = (chartHeight * (value - _min)) / (_max - _min);
-    y = (y - chartHeight) * -1; // invert y value
-
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = lineWidth;
-    // draw label line
-    if (dashed) {
-      var max = size.width;
-      if (!fullscreenGridLine) {
-        max -= valueLabelWidth;
-      }
-      double dashWidth = 5;
-      var dashSpace = 5;
-      double startX = 0;
-      final space = (dashSpace + dashWidth);
-      while (startX < max) {
-        var endX = startX + dashWidth;
-        endX = endX > max ? max : endX;
-        canvas.drawLine(
-          Offset(startX, y),
-          Offset(endX, y),
-          paint,
-        );
-        startX += space;
-      }
-    } else {
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width - valueLabelWidth + gridLineExtraWidth, y),
-        paint,
-      );
-    }
-
-    if (valueLabelBoxType == ValueLabelBoxType.roundedRect) {
-      // draw rounded rect
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            size.width - valueLabelWidth,
-            y - valueLabelHeight / 2,
-            valueLabelWidth,
-            valueLabelHeight,
-          ),
-          Radius.circular(valueLabelHeight / 2),
-        ),
-        Paint()..color = boxColor,
-      );
-    } else if (valueLabelBoxType == ValueLabelBoxType.rect) {
-      // draw rect
-      canvas.drawRect(
-        Rect.fromLTWH(
-          size.width - valueLabelWidth,
-          y - valueLabelHeight / 2,
-          valueLabelWidth,
-          valueLabelHeight,
-        ),
-        Paint()..color = boxColor,
-      );
-    } else if (valueLabelBoxType == ValueLabelBoxType.arrowTag) {
-      var tagPath = Path();
-
-      //     |---------- w -----------| 
-      //     |-w1-|-------- w2 -------|  -> w = w2 + w1 
-      //          b___________________c     w2 = w *0.85
-      //         /                    |
-      //        /                     |
-      //      a/                      |
-      //       \                      |
-      //        \                     |
-      //         \____________________|
-      //         e                    d
-
-      // move to point 'a'
-      tagPath.moveTo(
-        size.width - valueLabelWidth,
-        y - valueLabelHeight / 2 + valueLabelHeight / 2
-      );
-      // line from point 'a' to point 'b'
-      tagPath.relativeLineTo(valueLabelWidth*0.15, -valueLabelHeight / 2);
-      // line from point 'b' to point 'c' 
-      tagPath.relativeLineTo(valueLabelWidth*0.85, 0);
-      // line from point 'c' to point 'd' 
-      tagPath.relativeLineTo(0, valueLabelHeight);
-      // line from point 'd' to point 'e' 
-      tagPath.relativeLineTo(-valueLabelWidth*0.85, 0);
-      // line from point 'e' to point 'a' 
-      tagPath.lineTo(
-        size.width - valueLabelWidth,
-        y - valueLabelHeight / 2 + valueLabelHeight / 2
-      );
-      canvas.drawPath(tagPath, Paint()..color = boxColor);
-    } else if (valueLabelBoxType == ValueLabelBoxType.noTag) {
-    } else {
-      throw('valueLabelBoxType code not defined');
-    }
-
-    // draw value text into rounded rect
-    final Paragraph paragraph =
-      _getParagraphBuilderFromDouble(value, textColor).build()
-        ..layout(ParagraphConstraints(
-          width: valueLabelWidth,
-        ));
-    canvas.drawParagraph(paragraph,
-      Offset(size.width - valueLabelWidth, y - valueLabelFontSize / 2));
-  }
-
-  ParagraphBuilder _getParagraphBuilderFromDouble(
-      double value, Color textColor) {
-    return ParagraphBuilder(
-      ParagraphStyle(
-        textDirection: TextDirection.ltr,
-        textAlign: TextAlign.center,
-      ),
-    )
-      ..pushStyle(TextStyle(
-        color: textColor,
-        fontSize: valueLabelFontSize,
-        fontWeight: FontWeight.bold,
-      ).getTextStyle())
-      ..addText(
-        labelPrefix + numCommaParse(value),
-      );
-  }
-
-  ParagraphBuilder _getParagraphBuilderFromString({
-    @required String value,
-    @required Color textColor,
-    TextDirection textDirection = TextDirection.ltr,
-    TextAlign textAlign = TextAlign.center,
-    FontWeight fontWeight = FontWeight.bold,
-  }) {
-    return ParagraphBuilder(
-      ParagraphStyle(
-        textDirection: textDirection,
-        textAlign: textAlign,
-      ),
-    )
-      ..pushStyle(TextStyle(
-        color: textColor,
-        fontSize: valueLabelFontSize,
-        fontWeight: fontWeight,
-      ).getTextStyle())
-      ..addText(value);
-  }
-
-  Paragraph _getPragraphFromString({
-    @required String text,
-    @required Color color,
-    TextDirection textDirection = TextDirection.ltr,
-    TextAlign textAlign = TextAlign.center,
-    FontWeight fontWeight = FontWeight.bold,
-    ParagraphConstraints paragraphConstraints,
-  }) {
-    return _getParagraphBuilderFromString(
-      value: text,
-      textColor: color,
-      textDirection: textDirection,
-      textAlign: textAlign,
-      fontWeight: fontWeight
-    ).build()
-    ..layout(
-      paragraphConstraints
-    );
   }
 
   @override
   bool shouldRepaint(_CandleStickChartPainter old) {
     return data != old.data ||
-      lineWidth != old.lineWidth ||
-      enableGridLines != old.enableGridLines ||
-      gridLineColor != old.gridLineColor ||
-      gridLineAmount != old.gridLineAmount ||
-      gridLineWidth != old.gridLineWidth ||
       volumeProp != old.volumeProp ||
-      gridLineLabelColor != old.gridLineLabelColor ||
       !cursorStyle.equalTo(old.cursorStyle) ||
-      lineValues.hashCode != old.lineValues.hashCode ||
       cursorPosition.dx != old.cursorPosition.dx ||
       cursorPosition.dy != old.cursorPosition.dy;
   }
@@ -1585,4 +1561,246 @@ class ChartEventStyle {
   final double circleRadius;
   final Paint circlePaint;
   final Paint circleBorderPaint;
+}
+
+class ChartGridLineStyle {
+  const ChartGridLineStyle({
+    this.gridLineColor = Colors.grey,
+    this.gridLineAmount = 5,
+    this.gridLineWidth = 0.5,
+    this.gridLineLabelColor = Colors.grey,
+    this.xAxisLabelCount = 3,
+    this.showXAxisLabels = false,
+    this.fullscreenGridLine = false,
+  });
+  final Color gridLineColor;
+  final int gridLineAmount;
+  final double gridLineWidth;
+  final Color gridLineLabelColor;
+  final int xAxisLabelCount;
+  final bool showXAxisLabels;
+  final bool fullscreenGridLine;
+}
+
+class CandleSticksStyle {
+  const CandleSticksStyle({
+    this.shadowLineWidth = 1.0,
+    this.labelPrefix = "\$",
+    this.increaseColor = Colors.green,
+    this.decreaseColor = Colors.red,
+    this.volumeSectionOffset = 0,
+    this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
+  });
+
+  final double shadowLineWidth;
+  final String labelPrefix;
+  final Color increaseColor;
+  final Color decreaseColor;
+  final double volumeSectionOffset;
+  final ValueLabelBoxType valueLabelBoxType; 
+}
+
+class _CandleStickChartHelper {
+  static ParagraphBuilder getParagraphBuilderFromDouble({
+      @required double value,
+      @required Color textColor,
+      @required double fontSize,
+      @required String labelPrefix,
+      FormatFn formatValueLabelFn,
+      bool formatValueLabelWithK,
+  }) {
+    return ParagraphBuilder(
+      ParagraphStyle(
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      ),
+    )
+      ..pushStyle(TextStyle(
+        color: textColor,
+        fontSize: fontSize,
+        fontWeight: FontWeight.bold,
+      ).getTextStyle())
+      ..addText(
+        labelPrefix + numCommaParse(
+          value,
+          formatValueLabelFn: formatValueLabelFn,
+          formatValueLabelWithK: formatValueLabelWithK,
+        ),
+      );
+  }
+
+  static ParagraphBuilder getParagraphBuilderFromString({
+    @required String value,
+    @required Color textColor,
+    @required double fontSize,
+    TextDirection textDirection = TextDirection.ltr,
+    TextAlign textAlign = TextAlign.center,
+    FontWeight fontWeight = FontWeight.bold,
+  }) {
+    return ParagraphBuilder(
+      ParagraphStyle(
+        textDirection: textDirection,
+        textAlign: textAlign,
+      ),
+    )
+      ..pushStyle(TextStyle(
+        color: textColor,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+      ).getTextStyle())
+      ..addText(value);
+  }
+
+  static String numCommaParse(
+    double n,
+    {
+      FormatFn formatValueLabelFn,
+      bool formatValueLabelWithK,
+    }) {
+    if (formatValueLabelFn != null) {
+      return formatValueLabelFn(n);
+    }
+    if (formatValueLabelWithK != null) {
+      return CandleStickChartValueFormat.formatPricesWithK(n); 
+    }
+    return CandleStickChartValueFormat.formatPricesWithComma(n);
+  }
+
+  // draws line and value box over x-axis
+  static void drawValueLabel({
+    @required Canvas canvas,
+    @required Size size,
+    @required double value,
+    @required double lineWidth,
+    @required double volumeProp,
+    @required double minValue,
+    @required double maxValue,
+    @required bool fullscreenGridLine,
+    @required double valueLabelWidth,
+    @required ValueLabelBoxType valueLabelBoxType,
+    @required double valueLabelHeight,
+    @required double valueLabelFontSize,
+    @required String labelPrefix,
+    FormatFn formatValueLabelFn,
+    bool formatValueLabelWithK,
+    Color lineColor = Colors.black,
+    Color boxColor = Colors.black,
+    Color textColor = Colors.white,
+    bool dashed = false,
+    double gridLineExtraWidth = 0,
+  }) {
+    final double chartHeight = size.height * (1 - volumeProp);
+    var y = (chartHeight * (value - minValue)) / (maxValue - minValue);
+    y = (y - chartHeight) * -1; // invert y value
+
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = lineWidth;
+    // draw label line
+    if (dashed) {
+      var max = size.width;
+      if (!fullscreenGridLine) {
+        max -= valueLabelWidth;
+      }
+      double dashWidth = 5;
+      var dashSpace = 5;
+      double startX = 0;
+      final space = (dashSpace + dashWidth);
+      while (startX < max) {
+        var endX = startX + dashWidth;
+        endX = endX > max ? max : endX;
+        canvas.drawLine(
+          Offset(startX, y),
+          Offset(endX, y),
+          paint,
+        );
+        startX += space;
+      }
+    } else {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width - valueLabelWidth + gridLineExtraWidth, y),
+        paint,
+      );
+    }
+
+    if (valueLabelBoxType == ValueLabelBoxType.roundedRect) {
+      // draw rounded rect
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            size.width - valueLabelWidth,
+            y - valueLabelHeight / 2,
+            valueLabelWidth,
+            valueLabelHeight,
+          ),
+          Radius.circular(valueLabelHeight / 2),
+        ),
+        Paint()..color = boxColor,
+      );
+    } else if (valueLabelBoxType == ValueLabelBoxType.rect) {
+      // draw rect
+      canvas.drawRect(
+        Rect.fromLTWH(
+          size.width - valueLabelWidth,
+          y - valueLabelHeight / 2,
+          valueLabelWidth,
+          valueLabelHeight,
+        ),
+        Paint()..color = boxColor,
+      );
+    } else if (valueLabelBoxType == ValueLabelBoxType.arrowTag) {
+      var tagPath = Path();
+
+      //     |---------- w -----------| 
+      //     |-w1-|-------- w2 -------|  -> w = w2 + w1 
+      //          b___________________c     w2 = w *0.85
+      //         /                    |
+      //        /                     |
+      //      a/                      |
+      //       \                      |
+      //        \                     |
+      //         \____________________|
+      //         e                    d
+
+      // move to point 'a'
+      tagPath.moveTo(
+        size.width - valueLabelWidth,
+        y - valueLabelHeight / 2 + valueLabelHeight / 2
+      );
+      // line from point 'a' to point 'b'
+      tagPath.relativeLineTo(valueLabelWidth*0.15, -valueLabelHeight / 2);
+      // line from point 'b' to point 'c' 
+      tagPath.relativeLineTo(valueLabelWidth*0.85, 0);
+      // line from point 'c' to point 'd' 
+      tagPath.relativeLineTo(0, valueLabelHeight);
+      // line from point 'd' to point 'e' 
+      tagPath.relativeLineTo(-valueLabelWidth*0.85, 0);
+      // line from point 'e' to point 'a' 
+      tagPath.lineTo(
+        size.width - valueLabelWidth,
+        y - valueLabelHeight / 2 + valueLabelHeight / 2
+      );
+      canvas.drawPath(tagPath, Paint()..color = boxColor);
+    } else if (valueLabelBoxType == ValueLabelBoxType.noTag) {
+    } else {
+      throw('valueLabelBoxType code not defined');
+    }
+
+    // draw value text into rounded rect
+    final Paragraph paragraph =
+      _CandleStickChartHelper.getParagraphBuilderFromDouble(
+        value: value,
+        textColor: textColor,
+        fontSize: valueLabelFontSize,
+        labelPrefix: labelPrefix,
+        formatValueLabelFn: formatValueLabelFn,
+        formatValueLabelWithK: formatValueLabelWithK,
+      ).build()
+        ..layout(ParagraphConstraints(
+          width: valueLabelWidth,
+        ));
+    canvas.drawParagraph(paragraph,
+      Offset(size.width - valueLabelWidth, y - valueLabelFontSize / 2));
+  }
 }

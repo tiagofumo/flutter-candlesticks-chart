@@ -276,110 +276,113 @@ class _MyAppState extends State<MyApp> {
         )
       );
     }
-    return (
-      Container(
-        color: backgroundColor,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Container(
-              width: 200.0,
-              child: RaisedButton(
-                child: Center(
-                  child: Text(
-                    buttonText,
-                  ),
+    return Container(
+      color: backgroundColor,
+      padding: EdgeInsets.only(bottom: 3),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
+        children: <Widget>[
+          Container(
+            child: RaisedButton(
+              child: Center(
+                child: Text(
+                  buttonText,
                 ),
-                onPressed: () {
-                  this.setState(() {
-                    this._darkMode = !this._darkMode;
-                  });
-                }
               ),
+              onPressed: () {
+                this.setState(() {
+                  this._darkMode = !this._darkMode;
+                });
+              }
             ),
-            Container(
-              child: GestureDetector(
-                onLongPressStart: (detail) {
-                  setCursorPosition(detail.localPosition);
-                },
-                onLongPressMoveUpdate: (detail) {
-                  setCursorPosition(detail.localPosition);
-                },
-                onTapDown: (detail) {
-                  setCursorPosition(detail.localPosition);
-                },
-                onHorizontalDragStart: (detail) {
-                  setCursorPosition(detail.localPosition);
-                },
-                onHorizontalDragUpdate: (detail) {
-                  setCursorPosition(detail.localPosition);
-                },
-                onVerticalDragStart: (detail) {
-                  setCursorPosition(detail.localPosition);
-                },
-                onVerticalDragUpdate: (detail) {
-                  setCursorPosition(detail.localPosition);
-                },
-                onTapUp: (detail) {
-                  clearCursor();
-                },
-                onVerticalDragEnd: (detail) {
-                  clearCursor();
-                },
-                onHorizontalDragEnd: (detail) {
-                  clearCursor();
-                },
-                onLongPressEnd: (detail) {
-                  clearCursor();
-                },
-                child: CandleStickChart(
-                  data: data,
-                  fallbackHeight: 400,
-                  enableGridLines: true,
+          ),
+          Expanded(
+            child: GestureDetector(
+              onLongPressStart: (detail) {
+                setCursorPosition(detail.localPosition);
+              },
+              onLongPressMoveUpdate: (detail) {
+                setCursorPosition(detail.localPosition);
+              },
+              onTapDown: (detail) {
+                setCursorPosition(detail.localPosition);
+              },
+              onHorizontalDragStart: (detail) {
+                setCursorPosition(detail.localPosition);
+              },
+              onHorizontalDragUpdate: (detail) {
+                setCursorPosition(detail.localPosition);
+              },
+              onVerticalDragStart: (detail) {
+                setCursorPosition(detail.localPosition);
+              },
+              onVerticalDragUpdate: (detail) {
+                setCursorPosition(detail.localPosition);
+              },
+              onTapUp: (detail) {
+                clearCursor();
+              },
+              onVerticalDragEnd: (detail) {
+                clearCursor();
+              },
+              onHorizontalDragEnd: (detail) {
+                clearCursor();
+              },
+              onLongPressEnd: (detail) {
+                clearCursor();
+              },
+              child: CandleStickChart(
+                data: data,
+                fallbackHeight: 400,
+                enableGridLines: true,
+                gridLineStyle: ChartGridLineStyle(
                   gridLineAmount: 4,
-                  volumeProp: 0.2,
-                  volumeSectionOffset: 22,
+                  showXAxisLabels: true,
+                  xAxisLabelCount: 4,
+                ),
+                candleSticksStyle: CandleSticksStyle(
                   labelPrefix: ' R\$ ',
                   valueLabelBoxType: ValueLabelBoxType.arrowTag,
-                  showXAxisLabel: true,
-                  formatValueLabelWithK: true,
-                  xAxisLabelCount: 4,
-                  infoBoxStyle: infoBoxStyle,
-                  cursorStyle: CandleChartCursorStyle(
-                    cursorColor: cursorColor,
-                    showCursorCircle: false,
-                    cursorOffset: Offset(0, 50),
-                    cursorLabelBoxColor: Colors.green,
+                  volumeSectionOffset: 22,
+                ),
+                volumeProp: 0.2,
+                formatValueLabelWithK: true,
+                infoBoxStyle: infoBoxStyle,
+                cursorStyle: CandleChartCursorStyle(
+                  cursorColor: cursorColor,
+                  showCursorCircle: false,
+                  cursorOffset: Offset(0, 50),
+                  cursorLabelBoxColor: Colors.green,
+                ),
+                cursorPosition: this._cursorPosition,
+                lineValues: [
+                  LineValue(
+                    value: lastData.close,
+                    lineColor: lineColor,
+                    dashed: true,
                   ),
-                  cursorPosition: this._cursorPosition,
-                  lineValues: [
-                    LineValue(
-                      value: lastData.close,
-                      lineColor: lineColor,
-                      dashed: true,
-                    ),
-                  ],
-                  chartEvents: chartEvents,
-                  chartEventStyle: ChartEventStyle(
-                    textStyle: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    circleRadius: 13,
-                    circlePaint: Paint()
-                      ..color = Colors.orange
-                      ..style = PaintingStyle.fill,
-                    circleBorderPaint: Paint()
-                      ..color = Colors.orange[50]
-                      ..style = PaintingStyle.stroke,
+                ],
+                chartEvents: chartEvents,
+                chartEventStyle: ChartEventStyle(
+                  textStyle: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
                   ),
+                  circleRadius: 13,
+                  circlePaint: Paint()
+                    ..color = Colors.orange
+                    ..style = PaintingStyle.fill,
+                  circleBorderPaint: Paint()
+                    ..color = Colors.orange[50]
+                    ..style = PaintingStyle.stroke,
                 ),
               ),
             ),
-          ],
-        ),
-      )
+          ),
+        ],
+      ),
     );
   }
 }
