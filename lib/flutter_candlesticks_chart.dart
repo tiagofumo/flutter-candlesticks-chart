@@ -186,7 +186,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
     return CustomPaint(
       size: Size.infinite,
       painter: _CandleStickChartPainter(
-        widget.data,
+        data,
         volumeProp: widget.volumeProp,
         labelPrefix: widget.candleSticksStyle.labelPrefix,
         valueLabelBoxType: widget.candleSticksStyle.valueLabelBoxType,
@@ -199,7 +199,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
         maxValue: _maxValue,
         minValue: _minValue,
         maxVolume: _maxVolume,
-        infoBoxStyle: widget.infoBoxStyle,
+        infoBoxStyle: infoBoxStyle,
         cursorPosition: widget.cursorPosition,
         cursorStyle: widget.cursorStyle,
         backgroundPicture: backgroundPicture,
