@@ -733,31 +733,27 @@ class _ChartBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ChartBackgroundPainter old) {
-    bool equalLineValues = true;
-    if (lineValues.length != old.lineValues.length) {
-      equalLineValues = false;
-    } else {
-      for (var i = 0; i < lineValues.length; i++) {
-        var lineValue = lineValues[i];
-        var oldLineValue = old.lineValues[i];
-        if (lineValue.value != oldLineValue.value ||
-            lineValue.textColor != oldLineValue.textColor ||
-            lineValue.lineColor != oldLineValue.lineColor ||
-            lineValue.lineWidth != oldLineValue.lineWidth ||
-            lineValue.dashed != oldLineValue.dashed) {
-          equalLineValues = false;
-        }
-      }
-    }
-    return data != old.data ||
+    return !listEquals(data,old.data) ||
       shadowLineWidth != old.shadowLineWidth ||
       enableGridLines != old.enableGridLines ||
       gridLineColor != old.gridLineColor ||
       gridLineAmount != old.gridLineAmount ||
       gridLineWidth != old.gridLineWidth ||
-      volumeProp != old.volumeProp ||
       gridLineLabelColor != old.gridLineLabelColor ||
-      !equalLineValues;
+      volumeProp != old.volumeProp ||
+      labelPrefix != old.labelPrefix ||
+      increaseColor != old.increaseColor ||
+      decreaseColor != old.decreaseColor ||
+      volumeSectionOffset != old.volumeSectionOffset ||
+      valueLabelBoxType != old.valueLabelBoxType ||
+      xAxisLabelCount != old.xAxisLabelCount ||
+      formatValueLabelWithK != old.formatValueLabelWithK ||
+      formatValueLabelFn != old.formatValueLabelFn ||
+      fullscreenGridLine != old.fullscreenGridLine ||
+      showXAxisLabels != old.showXAxisLabels ||
+      !listEquals(chartEvents, old.chartEvents) ||
+      chartEventStyle != old.chartEventStyle ||
+      !listEquals(lineValues, old.lineValues);
   }
 }
 
@@ -1099,11 +1095,11 @@ class _CandleStickChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CandleStickChartPainter old) {
-    return data != old.data ||
-      volumeProp != old.volumeProp ||
-      !cursorStyle.equalTo(old.cursorStyle) ||
+    return backgroundPicture != old.backgroundPicture || 
+      cursorStyle != old.cursorStyle ||
       cursorPosition.dx != old.cursorPosition.dx ||
-      cursorPosition.dy != old.cursorPosition.dy;
+      cursorPosition.dy != old.cursorPosition.dy ||
+      infoBoxStyle != old.infoBoxStyle;
   }
 }
 
@@ -1121,6 +1117,23 @@ class LineValue {
     this.dashed = false,
     this.lineWidth = 0.5,
   });
+
+  bool operator==(o) {
+    return o is LineValue &&
+      value == o.value &&
+      textColor == o.textColor &&
+      lineColor == o.lineColor &&
+      dashed == o.dashed &&
+      lineWidth == o.lineWidth;
+  }
+
+  int get hashCode => hashList([
+    value.hashCode,
+    textColor.hashCode,
+    lineColor.hashCode,
+    dashed.hashCode,
+    lineWidth.hashCode,
+  ]);
 }
 
 enum ValueLabelBoxType {
@@ -1198,6 +1211,27 @@ class CandleStickChartData {
   DateTime dateTime;
   double volume;
   double selectedPrice;
+
+  bool operator ==(o) {
+    return o is CandleStickChartData &&
+      open == o.open &&
+      high == o.high &&
+      low == o.low &&
+      close == o.close &&
+      dateTime == o.dateTime &&
+      volume == o.volume &&
+      selectedPrice == o.selectedPrice;
+  }
+
+  int get hashCode => hashList([
+    open.hashCode,
+    high.hashCode,
+    low.hashCode,
+    close.hashCode,
+    dateTime.hashCode,
+    volume.hashCode,
+    selectedPrice.hashCode,
+  ]);
 }
 
 class _ChartPointMapping {
@@ -1224,34 +1258,39 @@ class CandleChartCursorStyle {
   });
 
   final bool showCursorCircle;
-
-  // CursorColor
   final Color cursorColor;
-
   final Color cursorTextColor;
-
   final Color cursorLabelBoxColor;
-
   final double cursorLineWidth;
-
   final bool cursorLineDashed;
-
   final bool cursorJumpToCandleCenter;
-
   final String cursorXAxisFormatString;
   final Offset cursorOffset;
 
-  bool equalTo(CandleChartCursorStyle compared) {
-    return showCursorCircle == compared.showCursorCircle &&
-      cursorColor == compared.cursorColor &&
-      cursorLabelBoxColor == compared.cursorLabelBoxColor &&
-      cursorTextColor == compared.cursorTextColor &&
-      cursorJumpToCandleCenter == compared.cursorJumpToCandleCenter &&
-      cursorLineWidth == compared.cursorLineWidth &&
-      cursorOffset == compared.cursorOffset &&
-      cursorLineDashed == compared.cursorLineDashed &&
-      cursorXAxisFormatString == compared.cursorXAxisFormatString;
+  bool operator==(o) {
+    return o is CandleChartCursorStyle && 
+      showCursorCircle == o.showCursorCircle &&
+      cursorColor == o.cursorColor &&
+      cursorLabelBoxColor == o.cursorLabelBoxColor &&
+      cursorTextColor == o.cursorTextColor &&
+      cursorJumpToCandleCenter == o.cursorJumpToCandleCenter &&
+      cursorLineWidth == o.cursorLineWidth &&
+      cursorOffset == o.cursorOffset &&
+      cursorLineDashed == o.cursorLineDashed &&
+      cursorXAxisFormatString == o.cursorXAxisFormatString;
   }
+
+  int get hashCode => hashList([
+    showCursorCircle.hashCode,
+    cursorColor.hashCode,
+    cursorTextColor.hashCode,
+    cursorLabelBoxColor.hashCode,
+    cursorLineWidth.hashCode,
+    cursorLineDashed.hashCode,
+    cursorJumpToCandleCenter.hashCode,
+    cursorXAxisFormatString.hashCode,
+    cursorOffset.hashCode,
+  ]);
 }
 
 class ChartInfoBoxThemes {
@@ -1318,6 +1357,38 @@ class ChartInfoBoxStyle {
   double padding;
   double margin;
   CandleChartI18N chartI18N;
+
+  bool operator==(o) {
+    return o is ChartInfoBoxStyle &&
+      backgroundOpacity == o.backgroundOpacity &&
+      textColor == o.textColor &&
+      borderColor == o.borderColor &&
+      textFontSize == o.textFontSize &&
+      borderWidth == o.borderWidth &&
+      formatValuesFn == o.formatValuesFn &&
+      dateFormatStr == o.dateFormatStr &&
+      fontWeight == o.fontWeight &&
+      infoBoxFingerOffset == o.infoBoxFingerOffset &&
+      padding == o.padding &&
+      margin == o.margin &&
+      chartI18N == o.chartI18N;
+  }
+
+  int get hashCode => hashList([
+    backgroundColor.hashCode,
+    backgroundOpacity.hashCode,
+    textColor.hashCode,
+    borderColor.hashCode,
+    textFontSize.hashCode,
+    borderWidth.hashCode,
+    formatValuesFn.hashCode,
+    dateFormatStr.hashCode,
+    fontWeight.hashCode,
+    infoBoxFingerOffset.hashCode,
+    padding.hashCode,
+    margin.hashCode,
+    chartI18N.hashCode,
+  ]);
 }
 
 class CandleChartI18N {
@@ -1334,13 +1405,30 @@ class CandleChartI18N {
   final String high;
   final String low;
   final String volume;
+
+  bool operator==(o) {
+    return o is CandleChartI18N &&
+      open == o.open &&
+      close == o.close &&
+      high == o.high &&
+      low == o.low &&
+      volume == o.volume;
+  }
+
+  int get hashCode => hashList([
+    open.hashCode,
+    close.hashCode,
+    high.hashCode,
+    low.hashCode,
+    volume.hashCode,
+  ]);
 }
 
-class ChartVerticalLineDate {
+class _ChartVerticalLineDate {
   DateTime dateTime;
   String label;
   int index;
-  ChartVerticalLineDate({this.dateTime, this.label, this.index});
+  _ChartVerticalLineDate({this.dateTime, this.label, this.index});
 }
 
 double roundToFixed(double d, [int n = 2]) {
@@ -1429,7 +1517,7 @@ class GridLineHelper {
     return stepValues[steps.last];
   }
 
-  static List<ChartVerticalLineDate> getVerticalLinesDates({
+  static List<_ChartVerticalLineDate> getVerticalLinesDates({
     List<DateTime> dates,
     int nDates = 4,
     bool monthDayYear = true,
@@ -1444,7 +1532,7 @@ class GridLineHelper {
       return [];
     }
 
-    List<ChartVerticalLineDate> list = [];
+    List<_ChartVerticalLineDate> list = [];
     if (lastDate.year == firstDate.year && lastDate.month == firstDate.month) {
       // same year same month
       var dateDistance = dates.length ~/ nDates;
@@ -1452,7 +1540,7 @@ class GridLineHelper {
         var dateIndex = i*dateDistance;
         var dateTime = dates[dateIndex];
         list.add(
-          ChartVerticalLineDate(
+          _ChartVerticalLineDate(
             dateTime: dateTime,
             label: intl.DateFormat('dd').format(dateTime), 
             index: dateIndex,
@@ -1465,7 +1553,7 @@ class GridLineHelper {
         var dateIndex = dates.indexWhere((d) => d.year == i);
         var dateTime = dates[dateIndex];
           list.add(
-            ChartVerticalLineDate(
+            _ChartVerticalLineDate(
               dateTime: dateTime,
               label: dateTime.year.toString(), 
               index: dateIndex, 
@@ -1480,7 +1568,7 @@ class GridLineHelper {
         var dateIndex = dates.indexWhere((d) => d.month == i);
         var dateTime = dates[dateIndex];
         list.add(
-          ChartVerticalLineDate(
+          _ChartVerticalLineDate(
             dateTime: dateTime,
             label: intl.DateFormat('MMM').format(dateTime),
             index: dateIndex, 
@@ -1539,6 +1627,19 @@ class ChartEvent {
   final DateTime dateTime;
   final String circleText;
   final void Function(ChartEvent eg) fn;
+
+  bool operator==(o) {
+    return o is ChartEvent &&
+      dateTime == o.dateTime &&
+      circleText == o.circleText &&
+      fn == o.fn;
+  }
+
+  int get hashCode => hashList([
+    dateTime.hashCode,
+    circleText.hashCode,
+    fn.hashCode,
+  ]);
 }
 
 class _ChartEventWithMappings {
@@ -1561,6 +1662,21 @@ class ChartEventStyle {
   final double circleRadius;
   final Paint circlePaint;
   final Paint circleBorderPaint;
+
+  bool operator==(o) {
+    return o is ChartEventStyle &&
+      textStyle == o.textStyle &&
+      circleRadius == o.circleRadius &&
+      circlePaint == o.circlePaint &&
+      circleBorderPaint == o.circleBorderPaint;
+  }
+
+  int get hashCode => hashList([
+    textStyle.hashCode,
+    circleRadius.hashCode,
+    circlePaint.hashCode,
+    circleBorderPaint.hashCode,
+  ]);
 }
 
 class ChartGridLineStyle {
@@ -1580,6 +1696,26 @@ class ChartGridLineStyle {
   final int xAxisLabelCount;
   final bool showXAxisLabels;
   final bool fullscreenGridLine;
+
+  bool operator==(o) {
+    return o is ChartGridLineStyle &&
+      gridLineAmount == o.gridLineAmount &&
+      gridLineWidth == o.gridLineWidth &&
+      gridLineLabelColor == o.gridLineLabelColor &&
+      xAxisLabelCount == o.xAxisLabelCount &&
+      showXAxisLabels == o.showXAxisLabels &&
+      fullscreenGridLine == o.fullscreenGridLine;
+  }
+
+  int get hashCode => hashList([
+    gridLineColor.hashCode,
+    gridLineAmount.hashCode,
+    gridLineWidth.hashCode,
+    gridLineLabelColor.hashCode,
+    xAxisLabelCount.hashCode,
+    showXAxisLabels.hashCode,
+    fullscreenGridLine.hashCode,
+  ]);
 }
 
 class CandleSticksStyle {
@@ -1598,6 +1734,25 @@ class CandleSticksStyle {
   final Color decreaseColor;
   final double volumeSectionOffset;
   final ValueLabelBoxType valueLabelBoxType; 
+
+  bool operator==(o) {
+    return o is CandleSticksStyle &&
+      shadowLineWidth == o.shadowLineWidth &&
+      labelPrefix == o.labelPrefix &&
+      increaseColor == o.increaseColor &&
+      decreaseColor == o.decreaseColor &&
+      volumeSectionOffset == o.volumeSectionOffset &&
+      valueLabelBoxType == o.valueLabelBoxType;
+  }
+
+  int get hashCode => hashList([
+    shadowLineWidth.hashCode,
+    labelPrefix.hashCode,
+    increaseColor.hashCode,
+    decreaseColor.hashCode,
+    volumeSectionOffset.hashCode,
+    valueLabelBoxType.hashCode,
+  ]);
 }
 
 class _CandleStickChartHelper {
