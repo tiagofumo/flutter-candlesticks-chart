@@ -11,10 +11,10 @@ class CandleStickChart extends StatefulWidget {
   CandleStickChart({
     Key key,
     @required this.data,
-    this.gridLineStyle,
-    this.candleSticksStyle,
     @required this.enableGridLines,
     @required this.volumeProp,
+    this.gridLineStyle,
+    this.candleSticksStyle,
     this.lineValues = const [],
     this.formatValueLabelFn,
     this.formatValueLabelWithK = false,
@@ -22,7 +22,7 @@ class CandleStickChart extends StatefulWidget {
     this.infoBoxStyle,
     this.cursorStyle = const CandleChartCursorStyle(),
     this.chartEvents = const [],
-    this.chartEventStyle,
+    this.chartEventStyle = const ChartEventStyle(),
     this.loadingWidget,
   }) : super(key: key) {
     assert(data != null);
@@ -487,9 +487,11 @@ class _ChartBackgroundPainter extends CustomPainter {
     // Draw chart events
     double eventsCircleRadius = chartEventStyle.circleRadius;
     double circleMargin = volumeHeight * 0.02;
-    chartEvents.sort((ChartEvent a, ChartEvent b) {
-      return a.dateTime.compareTo(b.dateTime);
-    });
+    if (chartEvents.isNotEmpty) {
+      chartEvents.sort((ChartEvent a, ChartEvent b) {
+        return a.dateTime.compareTo(b.dateTime);
+      });
+    }
     var chartEventsWithMappings = List<_ChartEventWithMappings>();
     int j = 0;
     for (var i = 0; i < data.length && j < chartEvents.length; i++) {
@@ -1646,7 +1648,7 @@ class _ChartEventWithMappings {
 }
 
 class ChartEventStyle {
-  ChartEventStyle({
+  const ChartEventStyle({
     this.textStyle,
     this.circleRadius,
     this.circlePaint,
