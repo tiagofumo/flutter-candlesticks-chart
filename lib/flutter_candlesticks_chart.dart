@@ -1248,7 +1248,7 @@ class CandleChartCursorStyle {
     this.cursorTextColor = Colors.white,
     this.cursorJumpToCandleCenter = false,
     this.cursorLineWidth = 0.5,
-    this.cursorOffset = const Offset(0, 0),
+    this.cursorOffset = const Offset(0, 50),
     this.cursorLineDashed = false,
     this.cursorXAxisFormatString = 'MM/dd/yyyy',
   });
