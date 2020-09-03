@@ -334,7 +334,6 @@ class _MyAppState extends State<MyApp> {
               },
               child: CandleStickChart(
                 data: data,
-                fallbackHeight: 400,
                 enableGridLines: true,
                 gridLineStyle: ChartGridLineStyle(
                   gridLineAmount: 4,

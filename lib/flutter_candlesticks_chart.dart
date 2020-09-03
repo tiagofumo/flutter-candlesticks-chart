@@ -11,8 +11,6 @@ class CandleStickChart extends StatefulWidget {
   CandleStickChart({
     Key key,
     @required this.data,
-    this.fallbackHeight = 100.0,
-    this.fallbackWidth = 300.0,
     this.gridLineStyle,
     this.candleSticksStyle,
     @required this.enableGridLines,
@@ -48,11 +46,6 @@ class CandleStickChart extends StatefulWidget {
 
   /// Proportion of paint to be given to volume bar graph
   final double volumeProp;
-
-  /// If graph is given unbounded space,
-  /// it will default to given fallback height and width
-  final double fallbackHeight;
-  final double fallbackWidth;
 
   // draw lines on chart
   final List<LineValue> lineValues;
