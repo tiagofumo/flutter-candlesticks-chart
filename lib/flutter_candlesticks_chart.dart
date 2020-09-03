@@ -655,13 +655,14 @@ class _ChartBackgroundPainter extends CustomPainter {
       var mapping = chartEventsWithMappings[i].mapping;
       double eventX = (mapping.from + mapping.to)/2;
       double eventY = size.height - circleMargin - eventsCircleRadius;
+      Offset circleOffset = Offset(eventX, eventY);
       canvas.drawCircle(
-        Offset(eventX, eventY),
+        circleOffset,
         eventsCircleRadius,
         chartEventStyle.circlePaint
       );
       canvas.drawCircle(
-        Offset(eventX, eventY),
+        circleOffset,
         eventsCircleRadius,
         chartEventStyle.circleBorderPaint
       );
