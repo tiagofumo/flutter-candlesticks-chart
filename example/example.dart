@@ -113,6 +113,7 @@ class _MyAppState extends State<MyApp> {
   bool _darkMode = true;
   Offset _cursorPosition = Offset(-1, -1);
   var assetEventCollectionsMap = HashMap<DateTime, AssetEventCollection>();
+  final List<ChartEvent> chartEvents = List<ChartEvent>();
 
   void setCursorPosition(Offset newPosition) {
     setState(() {
@@ -142,7 +143,6 @@ class _MyAppState extends State<MyApp> {
         fontWeight: FontWeight.bold,
       );
       List<Widget> widgetList = [];
-      // var padding = assetEvents.length == 1 ? 10 : 8;
       var padding = 20;
       for (var i = 0; i < assetEvents.length; i++) {
         var assetEvent = assetEvents[i];
@@ -161,7 +161,8 @@ class _MyAppState extends State<MyApp> {
             eventTitle = 'Notice to the market';
             break;
         }
-        eventTitle += ' - ' + intl.DateFormat('dd/MM/yyyy').format(assetEventCollection.dateTime);
+        eventTitle += ' - ' +
+          intl.DateFormat('dd/MM/yyyy').format(assetEventCollection.dateTime);
         widgetList.add(
           Container(
             padding: EdgeInsets.all(padding.toDouble()),
@@ -170,7 +171,10 @@ class _MyAppState extends State<MyApp> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(eventTitle, style: titleTextStyle),
-                Container(height: 2, width: double.infinity,),
+                Container(
+                  height: 2,
+                  width: double.infinity,
+                ),
                 Text(assetEvent.description, style: bodyTextStyle),
               ],
             ),
@@ -256,25 +260,30 @@ class _MyAppState extends State<MyApp> {
       low: "Mínima",
     );
 
-    var chartEvents = List<ChartEvent>();
-    for (var assetEventCollection in assetEventCollections) {
-      var dateTime = assetEventCollection.dateTime;
-      assetEventCollectionsMap[dateTime] = assetEventCollection;
-      var assetEvents = assetEventCollection.assetEvents;
-      String circleText;
-      var eventType = assetEvents.first.type;
-      if (assetEvents.length > 1 && !assetEvents.every((e) => e.type == eventType)) {
-        circleText = assetEvents.length.toString();
-      } else {
-        circleText = getCircleLetter(eventType);
+    if (chartEvents.isEmpty) {
+      // If the ChartEvent function has a different hashCode, the background
+      // will be repainted.
+      for (var assetEventCollection in assetEventCollections) {
+        var dateTime = assetEventCollection.dateTime;
+        assetEventCollectionsMap[dateTime] = assetEventCollection;
+        var assetEvents = assetEventCollection.assetEvents;
+        String circleText;
+        var eventType = assetEvents.first.type;
+        if (assetEvents.length > 1 &&
+            !assetEvents.every((e) => e.type == eventType)
+        ) {
+          circleText = assetEvents.length.toString();
+        } else {
+          circleText = getCircleLetter(eventType);
+        }
+        chartEvents.add(
+          ChartEvent(
+            dateTime: dateTime,
+            circleText: circleText, 
+            fn: this.buildDialog(context),
+          )
+        );
       }
-      chartEvents.add(
-        ChartEvent(
-          dateTime: dateTime,
-          circleText: circleText, 
-          fn: this.buildDialog(context),
-        )
-      );
     }
     return Container(
       color: backgroundColor,
@@ -284,6 +293,11 @@ class _MyAppState extends State<MyApp> {
         mainAxisSize: MainAxisSize.max,
         children: <Widget>[
           Container(
+            width: 150,
+            margin: EdgeInsets.only(
+              top: 5,
+              bottom: 5,
+            ),
             child: RaisedButton(
               child: Center(
                 child: Text(
@@ -343,9 +357,9 @@ class _MyAppState extends State<MyApp> {
                 candleSticksStyle: CandleSticksStyle(
                   labelPrefix: ' R\$ ',
                   valueLabelBoxType: ValueLabelBoxType.arrowTag,
-                  volumeSectionOffset: 22,
                 ),
-                volumeProp: 0.2,
+                // volumeProp: 0.2,
+                volumeProp: 0,
                 formatValueLabelWithK: true,
                 infoBoxStyle: infoBoxStyle,
                 cursorStyle: CandleChartCursorStyle(

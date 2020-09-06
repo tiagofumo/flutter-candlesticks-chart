@@ -12,7 +12,7 @@ class CandleStickChart extends StatefulWidget {
     Key key,
     @required this.data,
     @required this.enableGridLines,
-    @required this.volumeProp,
+    this.volumeProp = 0.2,
     this.gridLineStyle = const ChartGridLineStyle(),
     this.candleSticksStyle = const CandleSticksStyle(),
     this.lineValues = const [],
@@ -138,7 +138,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
       labelPrefix: widget.candleSticksStyle.labelPrefix,
       increaseColor: widget.candleSticksStyle.increaseColor,
       decreaseColor: widget.candleSticksStyle.decreaseColor,
-      volumeSectionOffset: widget.candleSticksStyle.volumeSectionOffset,
+      xAxisLabelHeight: widget.candleSticksStyle.xAxisLabelHeight,
       valueLabelBoxType: widget.candleSticksStyle.valueLabelBoxType,
       xAxisLabelCount: widget.gridLineStyle.xAxisLabelCount,
       lineValues: lineValues,
@@ -203,6 +203,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
         cursorPosition: widget.cursorPosition,
         cursorStyle: widget.cursorStyle,
         backgroundPicture: backgroundPicture,
+        xAxisLabelHeight: widget.candleSticksStyle.xAxisLabelHeight,
       ),
     ); 
   }
@@ -221,7 +222,7 @@ class _ChartBackgroundPainter extends CustomPainter {
     @required this.labelPrefix,
     @required this.increaseColor,
     @required this.decreaseColor,
-    @required this.volumeSectionOffset,
+    @required this.xAxisLabelHeight,
     @required this.valueLabelBoxType,
     @required this.pointsMappingX,
     @required this.pointsMappingY,
@@ -255,7 +256,6 @@ class _ChartBackgroundPainter extends CustomPainter {
   final List<_ChartPointMapping> pointsMappingX;
   final List<_ChartPointMapping> pointsMappingY;
   final List<LineValue> lineValues;
-  final double volumeSectionOffset;
   final bool formatValueLabelWithK;
 
   final FormatFn formatValueLabelFn;
@@ -269,7 +269,7 @@ class _ChartBackgroundPainter extends CustomPainter {
   final double valueLabelHeight = 20.0; // this must be valueLabelFontSize*2
 
   final double xAxisLabelWidth = 60;
-  final double xAxisLabelHeight = 20;
+  final double xAxisLabelHeight;
 
   final List<ChartEvent> chartEvents;
 
@@ -283,12 +283,20 @@ class _ChartBackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double volumeHeight = size.height * volumeProp;
-    final double volumeNormalizer = (volumeHeight - volumeSectionOffset) / maxVolume;
+    final double volumeHeight = _CandleStickChartHelper.calculateVolumeHeight(
+      size: size,
+      volumeProp: volumeProp,
+      xAxisLabelHeight: xAxisLabelHeight
+    );
+    final double volumeNormalizer = volumeHeight / maxVolume;
 
     double width = size.width;
-    final double height = size.height * (1 - volumeProp);
-    double volumeGridLineStartY = height + volumeSectionOffset;
+    final double mainChartHeight = _CandleStickChartHelper.calculateMainChartHeight(
+      size: size,
+      volumeProp: volumeProp,
+      xAxisLabelHeight: xAxisLabelHeight
+    );
+    double volumeGridLineStartY = mainChartHeight + xAxisLabelHeight;
 
     Paint gridLinePaint = Paint()
       ..color = gridLineColor
@@ -297,7 +305,7 @@ class _ChartBackgroundPainter extends CustomPainter {
       if (!fullscreenGridLine) {
         width = size.width - valueLabelWidth;
       }
-      double gridLineY = height;
+      double gridLineY = mainChartHeight;
 
       var gridLinesValues = GridLineHelper.getHorizontalGridLines(
         max: maxValue,
@@ -324,7 +332,7 @@ class _ChartBackgroundPainter extends CustomPainter {
           valueLabelFontSize: valueLabelFontSize,
           valueLabelHeight: valueLabelHeight,
           valueLabelWidth: valueLabelWidth,
-          volumeProp: volumeProp,
+          chartHeight: mainChartHeight,
           formatValueLabelFn: formatValueLabelFn,
           formatValueLabelWithK: formatValueLabelWithK,
         );
@@ -350,7 +358,7 @@ class _ChartBackgroundPainter extends CustomPainter {
       // Label volume line
       if (volumeProp > 0) {
         double startX = 0;
-        var lineYTop = gridLineY + volumeSectionOffset;
+        var lineYTop = gridLineY + xAxisLabelHeight;
         var endX = size.width;
         var volumeGridLinesList = GridLineHelper.getVolumeGridLines([], max: maxVolume);
         volumeGridLinesList.forEach((volumeGridLineValue) {
@@ -412,7 +420,7 @@ class _ChartBackgroundPainter extends CustomPainter {
       }
     }
 
-    final double heightNormalizer = height / (maxValue - minValue);
+    final double heightNormalizer = mainChartHeight / (maxValue - minValue);
     final double rectWidth = width / data.length;
 
     double rectLeft;
@@ -421,7 +429,8 @@ class _ChartBackgroundPainter extends CustomPainter {
     double rectBottom;
 
     Paint rectPaint;
-    Paint candleVerticalLinePaint = new Paint()..strokeWidth = 1;
+    Paint candleVerticalLinePaint = Paint()
+      ..strokeWidth = 1;
     pointsMappingX.clear();
     pointsMappingY.clear();
 
@@ -452,7 +461,7 @@ class _ChartBackgroundPainter extends CustomPainter {
           var gridLineLabelPaint = Paint()..color = gridLineLabelColor;
           canvas.drawLine(
             Offset(lineX, 0),
-            Offset(lineX, height),
+            Offset(lineX, mainChartHeight),
             gridLineLabelPaint
           );
 
@@ -469,7 +478,7 @@ class _ChartBackgroundPainter extends CustomPainter {
             paragraph,
             Offset(
               lineX - paragraphWidth / 2,
-              height + 6,
+              mainChartHeight + 6,
             ),
           );
 
@@ -522,14 +531,15 @@ class _ChartBackgroundPainter extends CustomPainter {
     for (int i = 0; i < data.length; i++) {
       rectLeft = pointsMappingX[i].from;
       rectRight = pointsMappingX[i].to;
-      double volumeBarTop = (height + volumeHeight) -
+      // double volumeBarTop = (mainChartHeight + volumeHeight) -
+      double volumeBarTop = size.height -
         (data[i].volume * volumeNormalizer - shadowLineWidth/ 2);
-      double volumeBarBottom = height + volumeHeight + shadowLineWidth / 2;
+      double volumeBarBottom = size.height + shadowLineWidth / 2;
 
       if (data[i].open > data[i].close) {
         // Draw candlestick if decrease
-        rectTop = height - (data[i].open - minValue) * heightNormalizer;
-        rectBottom = height - (data[i].close - minValue) * heightNormalizer;
+        rectTop = mainChartHeight - (data[i].open - minValue) * heightNormalizer;
+        rectBottom = mainChartHeight - (data[i].close - minValue) * heightNormalizer;
         rectPaint = new Paint()
           ..color = decreaseColor
           ..strokeWidth = shadowLineWidth;
@@ -546,9 +556,9 @@ class _ChartBackgroundPainter extends CustomPainter {
         candleVerticalLinePaint..color = decreaseColor;
       } else {
         // Draw candlestick if increase
-        rectTop = (height - (data[i].close - minValue) * heightNormalizer) +
+        rectTop = (mainChartHeight - (data[i].close - minValue) * heightNormalizer) +
             shadowLineWidth / 2;
-        rectBottom = (height - (data[i].open - minValue) * heightNormalizer) -
+        rectBottom = (mainChartHeight - (data[i].open - minValue) * heightNormalizer) -
             shadowLineWidth / 2;
         rectPaint = new Paint()
           ..color = increaseColor
@@ -571,8 +581,8 @@ class _ChartBackgroundPainter extends CustomPainter {
       }
 
       // Draw low/high candlestick wicks
-      double low = height - (data[i].low - minValue) * heightNormalizer;
-      double high = height - (data[i].high - minValue) * heightNormalizer;
+      double low = mainChartHeight - (data[i].low - minValue) * heightNormalizer;
+      double high = mainChartHeight - (data[i].high - minValue) * heightNormalizer;
       canvas.drawLine(
         new Offset(rectLeft + rectWidth / 2 - shadowLineWidth / 2, rectBottom),
         new Offset(rectLeft + rectWidth / 2 - shadowLineWidth / 2, low),
@@ -585,14 +595,14 @@ class _ChartBackgroundPainter extends CustomPainter {
       pointsMappingY.add(
         _ChartPointMapping(
           from: low,
-          to: height,
+          to: mainChartHeight,
         ),
       );
     }
 
     if (enableGridLines && fullscreenGridLine) {
       for (int i = 0; i < gridLineAmount; i++) {
-        double gridLineDist = height / (gridLineAmount - 1);
+        double gridLineDist = mainChartHeight / (gridLineAmount - 1);
         var gridLineY = (gridLineDist * i).round().toDouble();
         var gridLineValue = maxValue - (((maxValue - minValue) / (gridLineAmount - 1)) * i);
         // draw value paragraphs
@@ -637,7 +647,7 @@ class _ChartBackgroundPainter extends CustomPainter {
         valueLabelFontSize: valueLabelFontSize,
         valueLabelHeight: valueLabelHeight,
         valueLabelWidth: valueLabelWidth,
-        volumeProp: volumeProp,
+        chartHeight: mainChartHeight,
         formatValueLabelFn: formatValueLabelFn,
         formatValueLabelWithK: formatValueLabelWithK,
       );
@@ -738,7 +748,7 @@ class _ChartBackgroundPainter extends CustomPainter {
       labelPrefix != old.labelPrefix ||
       increaseColor != old.increaseColor ||
       decreaseColor != old.decreaseColor ||
-      volumeSectionOffset != old.volumeSectionOffset ||
+      xAxisLabelHeight != old.xAxisLabelHeight ||
       valueLabelBoxType != old.valueLabelBoxType ||
       xAxisLabelCount != old.xAxisLabelCount ||
       formatValueLabelWithK != old.formatValueLabelWithK ||
@@ -761,6 +771,7 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.labelPrefix,
     @required this.valueLabelBoxType,
     @required this.volumeProp,
+    @required this.xAxisLabelHeight,
     @required this.pointsMappingX,
     @required this.pointsMappingY,
     @required this.infoBoxStyle,
@@ -810,7 +821,7 @@ class _CandleStickChartPainter extends CustomPainter {
   final double valueLabelHeight = 20.0; // this must be valueLabelFontSize*2
 
   final double xAxisLabelWidth = 60;
-  final double xAxisLabelHeight = 20;
+  final double xAxisLabelHeight;
 
   final List<ChartEvent> chartEvents;
   final List<Rect> eventRects;
@@ -823,6 +834,17 @@ class _CandleStickChartPainter extends CustomPainter {
   }
 
   void _onPositionUpdate(Offset position, Size size) {
+    final double mainChartHeight = _CandleStickChartHelper.calculateMainChartHeight(
+      size: size,
+      volumeProp: volumeProp,
+      xAxisLabelHeight: xAxisLabelHeight,
+    );
+    final double volumeHeight = _CandleStickChartHelper.calculateVolumeHeight(
+      size: size,
+      volumeProp: volumeProp,
+      xAxisLabelHeight: xAxisLabelHeight,
+    );
+    final double totalWidgetHeight = size.height;
     // find candle index by coords
     var i = pointsMappingX.indexWhere(
         (el) => position.dx >= el.from && position.dx <= el.to);
@@ -848,18 +870,15 @@ class _CandleStickChartPainter extends CustomPainter {
     }
     // update x cursor
     var el = pointsMappingX.elementAt(i);
-    var widgetHeight = size.height;
     var cursorMaxX = size.width - valueLabelWidth;
     var cursorOffset = cursorStyle.cursorOffset;
     var myYPosition =
-        (position.dy - widgetHeight + (widgetHeight * volumeProp)) * -1;
+        (position.dy - totalWidgetHeight + volumeHeight + xAxisLabelHeight) * -1;
     myYPosition += cursorOffset.dy;
 
-    // calc chartHeight without volume part
-    final double chartHeight = size.height * (1 - volumeProp);
-    var positionPrice = (((maxValue - minValue) * myYPosition) / chartHeight) + minValue;
+    var positionPrice = (((maxValue - minValue) * myYPosition) / mainChartHeight) + minValue;
 
-    if (position.dy - cursorOffset.dy > chartHeight ||
+    if (position.dy - cursorOffset.dy > mainChartHeight ||
           position.dy - cursorOffset.dy < 0 ||
           position.dx - cursorOffset.dx > cursorMaxX) {
       clearCursor();
@@ -904,7 +923,17 @@ class _CandleStickChartPainter extends CustomPainter {
     } else {
       _onPositionUpdate(cursorPosition, size);
     }
-    final double volumeHeight = size.height * volumeProp;
+
+    final double volumeHeight = _CandleStickChartHelper.calculateVolumeHeight(
+      size: size,
+      volumeProp: volumeProp,
+      xAxisLabelHeight: xAxisLabelHeight,
+    );
+    final double mainChartHeight =  _CandleStickChartHelper.calculateMainChartHeight(
+      size: size,
+      volumeProp: volumeProp,
+      xAxisLabelHeight: xAxisLabelHeight,
+    );
 
     var cursorPaint = Paint()
       ..color = cursorStyle.cursorColor
@@ -921,7 +950,7 @@ class _CandleStickChartPainter extends CustomPainter {
 
     // draw cursor vertical line
     if (_cursorX != -1) {
-      final max = size.height - volumeHeight; // size gets to width
+      final max = mainChartHeight; // size gets to width
       double dashWidth = 5;
       var dashSpace = 5;
       double startY = 0;
@@ -994,7 +1023,7 @@ class _CandleStickChartPainter extends CustomPainter {
         valueLabelFontSize: valueLabelFontSize,
         valueLabelHeight: valueLabelHeight,
         valueLabelWidth: valueLabelWidth,
-        volumeProp: volumeProp,
+        chartHeight: mainChartHeight,
         formatValueLabelFn: formatValueLabelFn,
         formatValueLabelWithK: formatValueLabelWithK,
       );
@@ -1718,7 +1747,7 @@ class CandleSticksStyle {
     this.labelPrefix = "\$",
     this.increaseColor = Colors.green,
     this.decreaseColor = Colors.red,
-    this.volumeSectionOffset = 0,
+    this.xAxisLabelHeight = 22,
     this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
   });
 
@@ -1726,7 +1755,7 @@ class CandleSticksStyle {
   final String labelPrefix;
   final Color increaseColor;
   final Color decreaseColor;
-  final double volumeSectionOffset;
+  final double xAxisLabelHeight;
   final ValueLabelBoxType valueLabelBoxType; 
 
   bool operator==(o) {
@@ -1735,7 +1764,7 @@ class CandleSticksStyle {
       labelPrefix == o.labelPrefix &&
       increaseColor == o.increaseColor &&
       decreaseColor == o.decreaseColor &&
-      volumeSectionOffset == o.volumeSectionOffset &&
+      xAxisLabelHeight == o.xAxisLabelHeight &&
       valueLabelBoxType == o.valueLabelBoxType;
   }
 
@@ -1744,12 +1773,32 @@ class CandleSticksStyle {
     labelPrefix.hashCode,
     increaseColor.hashCode,
     decreaseColor.hashCode,
-    volumeSectionOffset.hashCode,
+    xAxisLabelHeight.hashCode,
     valueLabelBoxType.hashCode,
   ]);
 }
 
 class _CandleStickChartHelper {
+  static double calculateVolumeHeight({
+    @required Size size,
+    @required double volumeProp,
+    @required double xAxisLabelHeight
+  }) {
+    return (size.height - xAxisLabelHeight) * volumeProp;
+  }
+
+  static double calculateMainChartHeight({
+    @required Size size,
+    @required double volumeProp,
+    @required double xAxisLabelHeight,
+  }) {
+    return size.height - xAxisLabelHeight - calculateVolumeHeight(
+      size: size,
+      volumeProp: volumeProp,
+      xAxisLabelHeight: xAxisLabelHeight,
+    );
+  }
+
   static ParagraphBuilder getParagraphBuilderFromDouble({
       @required double value,
       @required Color textColor,
@@ -1821,7 +1870,7 @@ class _CandleStickChartHelper {
     @required Size size,
     @required double value,
     @required double lineWidth,
-    @required double volumeProp,
+    @required double chartHeight,
     @required double minValue,
     @required double maxValue,
     @required bool fullscreenGridLine,
@@ -1838,7 +1887,6 @@ class _CandleStickChartHelper {
     bool dashed = false,
     double gridLineExtraWidth = 0,
   }) {
-    final double chartHeight = size.height * (1 - volumeProp);
     var y = (chartHeight * (value - minValue)) / (maxValue - minValue);
     y = (y - chartHeight) * -1; // invert y value
 
