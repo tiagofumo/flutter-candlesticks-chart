@@ -80,6 +80,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
   Picture backgroundPicture;
   _ChartBackgroundPainter backgroundPainter;
 
+  Size oldParentSize;
   Size parentSize;
 
   double _maxValue;
@@ -90,13 +91,13 @@ class _CandleStickChartState extends State<CandleStickChart> {
 
   @override
   Widget build(BuildContext context) {
-    if (parentSize == null) {
-     WidgetsBinding.instance.addPostFrameCallback((_) {
-       setState(() {
-         parentSize = context.size;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (parentSize != context.size) {
+        setState(() {
+          parentSize = context.size;
         });
-      });
-    }
+      }
+    });
     var infoBoxStyle = widget.infoBoxStyle;
     if (infoBoxStyle == null) {
       infoBoxStyle = ChartInfoBoxThemes.getLightTheme();
@@ -157,10 +158,13 @@ class _CandleStickChartState extends State<CandleStickChart> {
       minValue: _minValue,
       maxVolume: _maxVolume,
     );
-    if ((backgroundPainter == null || 
-        newBackgroundPainter.shouldRepaint(backgroundPainter) ||
-        backgroundPicture == null) &&
-        parentSize != null) {
+    if (parentSize != null &&
+         (oldParentSize != null && oldParentSize != parentSize || 
+         backgroundPainter == null || 
+         newBackgroundPainter.shouldRepaint(backgroundPainter) ||
+         backgroundPicture == null)
+    ) {
+      oldParentSize = parentSize;
       backgroundPainter = newBackgroundPainter;
       var recorder = PictureRecorder();
 

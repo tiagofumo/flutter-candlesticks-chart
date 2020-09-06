@@ -285,117 +285,120 @@ class _MyAppState extends State<MyApp> {
         );
       }
     }
-    return Container(
-      color: backgroundColor,
-      padding: EdgeInsets.only(bottom: 3),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.max,
-        children: <Widget>[
-          Container(
-            width: 150,
-            margin: EdgeInsets.only(
-              top: 5,
-              bottom: 5,
-            ),
-            child: RaisedButton(
-              child: Center(
-                child: Text(
-                  buttonText,
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        return Container(
+          color: backgroundColor,
+          padding: EdgeInsets.only(bottom: 3),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              Container(
+                width: 150,
+                margin: EdgeInsets.only(
+                  top: 5,
+                  bottom: 5,
+                ),
+                child: RaisedButton(
+                  child: Center(
+                    child: Text(
+                      buttonText,
+                    ),
+                  ),
+                  onPressed: () {
+                    this.setState(() {
+                      this._darkMode = !this._darkMode;
+                    });
+                  }
                 ),
               ),
-              onPressed: () {
-                this.setState(() {
-                  this._darkMode = !this._darkMode;
-                });
-              }
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onLongPressStart: (detail) {
-                setCursorPosition(detail.localPosition);
-              },
-              onLongPressMoveUpdate: (detail) {
-                setCursorPosition(detail.localPosition);
-              },
-              onTapDown: (detail) {
-                setCursorPosition(detail.localPosition);
-              },
-              onHorizontalDragStart: (detail) {
-                setCursorPosition(detail.localPosition);
-              },
-              onHorizontalDragUpdate: (detail) {
-                setCursorPosition(detail.localPosition);
-              },
-              onVerticalDragStart: (detail) {
-                setCursorPosition(detail.localPosition);
-              },
-              onVerticalDragUpdate: (detail) {
-                setCursorPosition(detail.localPosition);
-              },
-              onTapUp: (detail) {
-                clearCursor();
-              },
-              onVerticalDragEnd: (detail) {
-                clearCursor();
-              },
-              onHorizontalDragEnd: (detail) {
-                clearCursor();
-              },
-              onLongPressEnd: (detail) {
-                clearCursor();
-              },
-              child: CandleStickChart(
-                data: data,
-                enableGridLines: true,
-                gridLineStyle: ChartGridLineStyle(
-                  gridLineAmount: 4,
-                  showXAxisLabels: true,
-                  xAxisLabelCount: 4,
-                ),
-                candleSticksStyle: CandleSticksStyle(
-                  labelPrefix: ' R\$ ',
-                  valueLabelBoxType: ValueLabelBoxType.arrowTag,
-                ),
-                // volumeProp: 0.2,
-                volumeProp: 0,
-                formatValueLabelWithK: true,
-                infoBoxStyle: infoBoxStyle,
-                cursorStyle: CandleChartCursorStyle(
-                  cursorColor: cursorColor,
-                  showCursorCircle: false,
-                  cursorOffset: Offset(0, 50),
-                  cursorLabelBoxColor: Colors.green,
-                ),
-                cursorPosition: this._cursorPosition,
-                lineValues: [
-                  LineValue(
-                    value: lastData.close,
-                    lineColor: lineColor,
-                    dashed: true,
+              Expanded(
+                child: GestureDetector(
+                  onLongPressStart: (detail) {
+                    setCursorPosition(detail.localPosition);
+                  },
+                  onLongPressMoveUpdate: (detail) {
+                    setCursorPosition(detail.localPosition);
+                  },
+                  onTapDown: (detail) {
+                    setCursorPosition(detail.localPosition);
+                  },
+                  onHorizontalDragStart: (detail) {
+                    setCursorPosition(detail.localPosition);
+                  },
+                  onHorizontalDragUpdate: (detail) {
+                    setCursorPosition(detail.localPosition);
+                  },
+                  onVerticalDragStart: (detail) {
+                    setCursorPosition(detail.localPosition);
+                  },
+                  onVerticalDragUpdate: (detail) {
+                    setCursorPosition(detail.localPosition);
+                  },
+                  onTapUp: (detail) {
+                    clearCursor();
+                  },
+                  onVerticalDragEnd: (detail) {
+                    clearCursor();
+                  },
+                  onHorizontalDragEnd: (detail) {
+                    clearCursor();
+                  },
+                  onLongPressEnd: (detail) {
+                    clearCursor();
+                  },
+                  child: CandleStickChart(
+                    data: data,
+                    enableGridLines: true,
+                    gridLineStyle: ChartGridLineStyle(
+                      gridLineAmount: 4,
+                      showXAxisLabels: true,
+                      xAxisLabelCount: 4,
+                    ),
+                    candleSticksStyle: CandleSticksStyle(
+                      labelPrefix: ' R\$ ',
+                      valueLabelBoxType: ValueLabelBoxType.arrowTag,
+                    ),
+                    volumeProp: 0.2,
+                    formatValueLabelWithK: true,
+                    infoBoxStyle: infoBoxStyle,
+                    cursorStyle: CandleChartCursorStyle(
+                      cursorColor: cursorColor,
+                      showCursorCircle: false,
+                      cursorOffset: Offset(0, 50),
+                      cursorLabelBoxColor: Colors.green,
+                    ),
+                    cursorPosition: this._cursorPosition,
+                    lineValues: [
+                      LineValue(
+                        value: lastData.close,
+                        lineColor: lineColor,
+                        dashed: true,
+                      ),
+                    ],
+                    chartEvents: chartEvents,
+                    chartEventStyle: ChartEventStyle(
+                      textStyle: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      circleRadius: 13,
+                      circlePaint: Paint()
+                        ..color = Colors.orange
+                        ..style = PaintingStyle.fill,
+                      circleBorderPaint: Paint()
+                        ..color = Colors.orange[50]
+                        ..style = PaintingStyle.stroke,
+                    ),
                   ),
-                ],
-                chartEvents: chartEvents,
-                chartEventStyle: ChartEventStyle(
-                  textStyle: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  circleRadius: 13,
-                  circlePaint: Paint()
-                    ..color = Colors.orange
-                    ..style = PaintingStyle.fill,
-                  circleBorderPaint: Paint()
-                    ..color = Colors.orange[50]
-                    ..style = PaintingStyle.stroke,
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
