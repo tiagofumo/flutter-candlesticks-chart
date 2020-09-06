@@ -86,6 +86,8 @@ class _CandleStickChartState extends State<CandleStickChart> {
   double _minValue;
   double _maxVolume;
 
+  bool isFirstTouch = true;
+
   @override
   Widget build(BuildContext context) {
     if (parentSize == null) {
@@ -183,6 +185,9 @@ class _CandleStickChartState extends State<CandleStickChart> {
         return widget.loadingWidget;
       }
     }
+    var cursorPosition = widget.cursorPosition;
+    var oldIsFirstTouch = isFirstTouch;
+    isFirstTouch = cursorPosition == null || cursorPosition.dx < 0;
     return CustomPaint(
       size: Size.infinite,
       painter: _CandleStickChartPainter(
@@ -200,10 +205,11 @@ class _CandleStickChartState extends State<CandleStickChart> {
         minValue: _minValue,
         maxVolume: _maxVolume,
         infoBoxStyle: infoBoxStyle,
-        cursorPosition: widget.cursorPosition,
+        cursorPosition: cursorPosition,
         cursorStyle: widget.cursorStyle,
         backgroundPicture: backgroundPicture,
         xAxisLabelHeight: widget.candleSticksStyle.xAxisLabelHeight,
+        isFirstTouch: oldIsFirstTouch,
       ),
     ); 
   }
@@ -785,6 +791,7 @@ class _CandleStickChartPainter extends CustomPainter {
     @required this.minValue,
     @required this.maxVolume,
     @required this.backgroundPicture,
+    @required this.isFirstTouch,
   });
 
   final List<CandleStickChartData> data;
@@ -827,6 +834,8 @@ class _CandleStickChartPainter extends CustomPainter {
   final List<Rect> eventRects;
 
   final Picture backgroundPicture;
+
+  final bool isFirstTouch;
 
   void clearCursor() {
     _cursorX = -1;
@@ -878,10 +887,7 @@ class _CandleStickChartPainter extends CustomPainter {
 
     var positionPrice = (((maxValue - minValue) * myYPosition) / mainChartHeight) + minValue;
 
-    if (position.dy - cursorOffset.dy > mainChartHeight ||
-          position.dy - cursorOffset.dy < 0 ||
-          position.dx - cursorOffset.dx > cursorMaxX) {
-      clearCursor();
+    if (isFirstTouch) {
       for (var j = 0; j < eventRects.length; j++) {
         if (eventRects[j].contains(position)) {
           var eventGroup = chartEvents[j];
@@ -890,8 +896,14 @@ class _CandleStickChartPainter extends CustomPainter {
               eventGroup.fn(eventGroup);
             });
           }
+          return;
         }
       }
+    }
+    if (position.dy - cursorOffset.dy > mainChartHeight ||
+          position.dy - cursorOffset.dy < 0 ||
+          position.dx - cursorOffset.dx > cursorMaxX) {
+      clearCursor();
       return;
     }
 
