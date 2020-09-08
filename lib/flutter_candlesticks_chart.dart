@@ -941,11 +941,6 @@ class _CandleStickChartPainter extends CustomPainter {
       _onPositionUpdate(cursorPosition, size);
     }
 
-    final double volumeHeight = _CandleStickChartHelper.calculateVolumeHeight(
-      size: size,
-      volumeProp: volumeProp,
-      xAxisLabelHeight: xAxisLabelHeight,
-    );
     final double mainChartHeight =  _CandleStickChartHelper.calculateMainChartHeight(
       size: size,
       volumeProp: volumeProp,

@@ -1,13 +1,12 @@
 name: flutter_candlesticks_chart
-description: Flutter candlesticks chart widget.
+description: Flutter candlesticks chart widget with support for cursor and events
 version: 0.1.0
-author: Tiago Mendonça <tiagofumo@gmail.com>
 homepage: https://github.com/tiagofumo/flutter-candlesticks-chart
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^0.1.3
+  cupertino_icons: ^1.0.0
   intl: ^0.16.1
 
 dev_dependencies:
