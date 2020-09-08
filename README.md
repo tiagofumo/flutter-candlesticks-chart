@@ -1,3 +1,5 @@
+[![pub package](https://img.shields.io/pub/v/flutter_candlesticks_chart.svg)](https://pub.dev/packages/flutter_candlesticks_chart)
+
 # flutter_candlesticks_chart
 
 Flutter candlesticks chart widget based on [trentpiercy's flutter-candlesticks](https://github.com/trentpiercy/flutter-candlesticks) which uses a MIT license. As I had a lot of changes to add, and the original repository seemed unchanged for a long while, I thought it would be better to just create a new repository.
@@ -8,9 +10,7 @@ Flutter candlesticks chart widget based on [trentpiercy's flutter-candlesticks](
 
 ## Usage
 
-TODO: Add to pub and copy link here
-
-Install for Flutter [with pub](https://pub.dartlang.org/packages/flutter_candlesticks#-installing-tab-).
+Install for Flutter [with pub](https://pub.dev/packages/flutter_candlesticks_chart/install).
 
 ## Configuration
 
