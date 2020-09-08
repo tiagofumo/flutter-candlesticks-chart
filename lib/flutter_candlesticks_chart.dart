@@ -925,10 +925,9 @@ class _CandleStickChartPainter extends CustomPainter {
     }
 
     _cursorY = position.dy;
-    data[i].selectedPrice = positionPrice;
 
     _cursorY -= cursorOffset.dy;
-    _cursorYPrice = data[i].selectedPrice;
+    _cursorYPrice = positionPrice;
     _cursorXTime = data[i].dateTime.millisecondsSinceEpoch;
     _selectedData = data[i];
   }
@@ -1247,7 +1246,6 @@ class CandleStickChartData {
     @required this.close,
     this.dateTime,
     this.volume,
-    this.selectedPrice,
   });
   double open;
   double high;
@@ -1255,7 +1253,6 @@ class CandleStickChartData {
   double close;
   DateTime dateTime;
   double volume;
-  double selectedPrice;
 
   bool operator ==(o) {
     return o is CandleStickChartData &&
@@ -1264,8 +1261,7 @@ class CandleStickChartData {
       low == o.low &&
       close == o.close &&
       dateTime == o.dateTime &&
-      volume == o.volume &&
-      selectedPrice == o.selectedPrice;
+      volume == o.volume;
   }
 
   int get hashCode => hashList([
@@ -1275,7 +1271,6 @@ class CandleStickChartData {
     close.hashCode,
     dateTime.hashCode,
     volume.hashCode,
-    selectedPrice.hashCode,
   ]);
 }
 
