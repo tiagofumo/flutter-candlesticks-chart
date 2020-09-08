@@ -11,14 +11,13 @@ class CandleStickChart extends StatefulWidget {
   CandleStickChart({
     Key key,
     @required this.data,
-    @required this.enableGridLines,
     this.volumeProp = 0.2,
     this.gridLineStyle = const ChartGridLineStyle(),
     this.candleSticksStyle = const CandleSticksStyle(),
     this.lineValues = const [],
     this.formatValueLabelFn,
     this.formatValueLabelWithK = false,
-    this.cursorPosition,
+    this.cursorPosition = const Offset(-1, -1),
     this.infoBoxStyle,
     this.cursorStyle = const CandleChartCursorStyle(),
     this.chartEvents = const [],
@@ -27,7 +26,7 @@ class CandleStickChart extends StatefulWidget {
   }) : super(key: key) {
     assert(data != null);
     if (gridLineStyle.fullscreenGridLine) {
-      assert(enableGridLines);
+      assert(gridLineStyle.enableGridLines);
     }
     if (formatValueLabelFn != null) {
       assert(!formatValueLabelWithK);
@@ -38,9 +37,6 @@ class CandleStickChart extends StatefulWidget {
   final List<CandleStickChartData> data;
 
   final ChartGridLineStyle gridLineStyle;
-
-  /// Enable or disable grid lines
-  final bool enableGridLines;
 
   final CandleSticksStyle candleSticksStyle;
 
@@ -143,7 +139,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
       gridLineAmount: widget.gridLineStyle.gridLineAmount,
       gridLineWidth: widget.gridLineStyle. gridLineWidth,
       gridLineLabelColor: widget.gridLineStyle.gridLineLabelColor,
-      enableGridLines: widget.enableGridLines,
+      enableGridLines: widget.gridLineStyle.enableGridLines,
       volumeProp: widget.volumeProp,
       labelPrefix: candleSticksStyle.labelPrefix,
       increaseColor: candleSticksStyle.increaseColor,
@@ -1726,8 +1722,9 @@ class ChartGridLineStyle {
     this.gridLineWidth = 0.5,
     this.gridLineLabelColor = Colors.grey,
     this.xAxisLabelCount = 3,
-    this.showXAxisLabels = false,
+    this.showXAxisLabels = true,
     this.fullscreenGridLine = false,
+    this.enableGridLines = true,
   });
   final Color gridLineColor;
   final int gridLineAmount;
@@ -1736,6 +1733,7 @@ class ChartGridLineStyle {
   final int xAxisLabelCount;
   final bool showXAxisLabels;
   final bool fullscreenGridLine;
+  final bool enableGridLines;
 
   bool operator==(o) {
     return o is ChartGridLineStyle &&
@@ -1744,7 +1742,8 @@ class ChartGridLineStyle {
       gridLineLabelColor == o.gridLineLabelColor &&
       xAxisLabelCount == o.xAxisLabelCount &&
       showXAxisLabels == o.showXAxisLabels &&
-      fullscreenGridLine == o.fullscreenGridLine;
+      fullscreenGridLine == o.fullscreenGridLine &&
+      enableGridLines == o.enableGridLines;
   }
 
   int get hashCode => hashList([
@@ -1755,6 +1754,7 @@ class ChartGridLineStyle {
     xAxisLabelCount.hashCode,
     showXAxisLabels.hashCode,
     fullscreenGridLine.hashCode,
+    enableGridLines.hashCode,
   ]);
 }
 

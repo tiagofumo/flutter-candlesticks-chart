@@ -350,11 +350,11 @@ class _MyAppState extends State<MyApp> {
                   },
                   child: CandleStickChart(
                     data: data,
-                    enableGridLines: true,
                     gridLineStyle: ChartGridLineStyle(
                       gridLineAmount: 4,
                       showXAxisLabels: true,
                       xAxisLabelCount: 4,
+                      enableGridLines: true,
                     ),
                     candleSticksStyle: CandleSticksStyle(
                       labelPrefix: ' R\$ ',
