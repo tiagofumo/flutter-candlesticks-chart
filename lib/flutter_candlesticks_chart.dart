@@ -128,21 +128,28 @@ class _CandleStickChartState extends State<CandleStickChart> {
         _minValue = l.value;
       }
     }
+    var candleSticksStyle = widget.candleSticksStyle;
+    var maxDiff = _maxValue - _minValue;
+    var adjustedDiff = maxDiff * 
+      (1 / (1 - candleSticksStyle.valueMarginRatio));
+      var extraValue = (adjustedDiff - maxDiff) / 2;
+    _maxValue += extraValue;
+    _minValue -= extraValue;
 
     var newBackgroundPainter = _ChartBackgroundPainter(
       data,
-      shadowLineWidth: widget.candleSticksStyle.shadowLineWidth,
+      shadowLineWidth: candleSticksStyle.shadowLineWidth,
       gridLineColor: widget.gridLineStyle.gridLineColor,
       gridLineAmount: widget.gridLineStyle.gridLineAmount,
       gridLineWidth: widget.gridLineStyle. gridLineWidth,
       gridLineLabelColor: widget.gridLineStyle.gridLineLabelColor,
       enableGridLines: widget.enableGridLines,
       volumeProp: widget.volumeProp,
-      labelPrefix: widget.candleSticksStyle.labelPrefix,
-      increaseColor: widget.candleSticksStyle.increaseColor,
-      decreaseColor: widget.candleSticksStyle.decreaseColor,
-      xAxisLabelHeight: widget.candleSticksStyle.xAxisLabelHeight,
-      valueLabelBoxType: widget.candleSticksStyle.valueLabelBoxType,
+      labelPrefix: candleSticksStyle.labelPrefix,
+      increaseColor: candleSticksStyle.increaseColor,
+      decreaseColor: candleSticksStyle.decreaseColor,
+      xAxisLabelHeight: candleSticksStyle.xAxisLabelHeight,
+      valueLabelBoxType: candleSticksStyle.valueLabelBoxType,
       xAxisLabelCount: widget.gridLineStyle.xAxisLabelCount,
       lineValues: lineValues,
       formatValueLabelFn: widget.formatValueLabelFn,
@@ -197,8 +204,8 @@ class _CandleStickChartState extends State<CandleStickChart> {
       painter: _CandleStickChartPainter(
         data,
         volumeProp: widget.volumeProp,
-        labelPrefix: widget.candleSticksStyle.labelPrefix,
-        valueLabelBoxType: widget.candleSticksStyle.valueLabelBoxType,
+        labelPrefix: candleSticksStyle.labelPrefix,
+        valueLabelBoxType: candleSticksStyle.valueLabelBoxType,
         formatValueLabelFn: widget.formatValueLabelFn,
         formatValueLabelWithK: widget.formatValueLabelWithK,
         pointsMappingX: pointsMappingX,
@@ -212,7 +219,7 @@ class _CandleStickChartState extends State<CandleStickChart> {
         cursorPosition: cursorPosition,
         cursorStyle: widget.cursorStyle,
         backgroundPicture: backgroundPicture,
-        xAxisLabelHeight: widget.candleSticksStyle.xAxisLabelHeight,
+        xAxisLabelHeight: candleSticksStyle.xAxisLabelHeight,
         isFirstTouch: oldIsFirstTouch,
       ),
     ); 
@@ -501,7 +508,6 @@ class _ChartBackgroundPainter extends CustomPainter {
       }
     }
 
-    // Draw chart events
     double eventsCircleRadius = chartEventStyle.circleRadius;
     double circleMargin = volumeHeight * 0.02;
     if (chartEvents.isNotEmpty) {
@@ -873,7 +879,7 @@ class _CandleStickChartPainter extends CustomPainter {
         i = 0;
       } else {
         // find the nearest candle
-        i2 -= 1; // il grande x minore di from
+        i2 -= 1;
         var delta1 = (position.dx - pointsMappingX[i].from).abs();
         var delta2 = (position.dx - pointsMappingX[i2].to).abs();
         if (delta2 < delta1) {
@@ -1765,6 +1771,7 @@ class CandleSticksStyle {
     this.decreaseColor = Colors.red,
     this.xAxisLabelHeight = 22,
     this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
+    this.valueMarginRatio = 0.15,
   });
 
   final double shadowLineWidth;
@@ -1773,6 +1780,7 @@ class CandleSticksStyle {
   final Color decreaseColor;
   final double xAxisLabelHeight;
   final ValueLabelBoxType valueLabelBoxType; 
+  final double valueMarginRatio;
 
   bool operator==(o) {
     return o is CandleSticksStyle &&
@@ -1781,7 +1789,8 @@ class CandleSticksStyle {
       increaseColor == o.increaseColor &&
       decreaseColor == o.decreaseColor &&
       xAxisLabelHeight == o.xAxisLabelHeight &&
-      valueLabelBoxType == o.valueLabelBoxType;
+      valueLabelBoxType == o.valueLabelBoxType &&
+      valueMarginRatio == o.valueMarginRatio;
   }
 
   int get hashCode => hashList([
@@ -1791,6 +1800,7 @@ class CandleSticksStyle {
     decreaseColor.hashCode,
     xAxisLabelHeight.hashCode,
     valueLabelBoxType.hashCode,
+    valueMarginRatio.hashCode,
   ]);
 }
 
