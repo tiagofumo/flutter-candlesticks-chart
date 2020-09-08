@@ -1,6 +1,10 @@
 # flutter_candlesticks_chart
 
-Flutter candlesticks chart widget based on [trentpiercy's flutter-candlesticks](https://github.com/trentpiercy/flutter-candlesticks) which uses a MIT license. As I had a lot of changes to add code and the original repository seemed unchanged for a long while, I thought it would be better to just create a new repository.
+Flutter candlesticks chart widget based on [trentpiercy's flutter-candlesticks](https://github.com/trentpiercy/flutter-candlesticks) which uses a MIT license. As I had a lot of changes to add, and the original repository seemed unchanged for a long while, I thought it would be better to just create a new repository.
+
+|Dark theme|Dark theme with info box on touch|Light theme|
+|--|---|---|
+|![testing](https://i.imgur.com/YqVNo4T.jpg) | ![testing](https://media0.giphy.com/media/iJKJxERdVYiwqoctY1/giphy.gif) | ![testing](https://i.imgur.com/x35kLd7.jpeg)
 
 ## Usage
 
@@ -8,58 +12,30 @@ TODO: Add to pub and copy link here
 
 Install for Flutter [with pub](https://pub.dartlang.org/packages/flutter_candlesticks#-installing-tab-).
 
-| Property                 | Default Value                   | Description                                                                 |
-|--------------------------|---------------------------------|-----------------------------------------------------------------------------|
-| data                     | Required Field                  | List of CandleStickChartData                                                |
-| enableGridLines          | Required Field                  | Enable or disable grid lines                                                |
-| volumeProp               | Required Field                  | Proportion of container to be given to volume bars                          |
-| lineWidth                | `1.0`                           | Width of most lines                                                         |
-| fallbackHeight           | `100.0`                         | If graph is given unbounded space, it will default to given fallback height |
-| fallbackWidth            | `300.0`                         | If graph is given unbounded space, it will default to given fallback width  |
-| gridLineColor            | `Colors.grey`                   | Color of grid lines                                                         |
-| gridLineAmount           | `5`                             | Number of grid lines to draw. Labels automatically assigned                 |
-| gridLineWidth            | `0.5`                           | Width of grid lines                                                         |
-| gridLineLabelColor       | `Colors.grey`                   | Color of grid line labels                                                   |
-| labelPrefix              | `"$"`                           | Prefix before grid line labels.                                             |
-| onSelect                 | No default                      | Invoked when a new candle is selected                                       |
-| increaseColor            | `Colors.green`                  | Color of increasing candles.                                                |
-| decreaseColor            | `Colors.red`                    | Color of decreasing candles.                                                |
-| showCursorCircle         | `true`                          | Show cursor dot in the middle of the cursor arrow                           |
-| showCursorInfoBox        | `true`                          | Show a box with information about the data point at cursor position         |
-| cursorColor              | `Colors.black`                  | The color used for the cursor lines                                         |
-| cursorLabelBoxColor      | `Colors.black`                  | The color used for the cursor value and time label boxes                    |
-| cursorTextColor          | `Colors.white`                  | The color used for the cursor value and time text                           |
-| cursorJumpToCandleCenter | `false`                         | Cursor always stays on candles' center position                             |
-| cursorLineWidth          |  `0.5`                          | Width of the lines of the cursor cross                                      |
-| cursorOffset             | `Offset(0, 0)`                  | Offset used by the cursor position relative to the user's touch             |
-| cursorLineDashed         | `false`                         | Cursor has dashed lines                                                     |
-| volumeSectionOffset      |  `0.0`                          | Extra offset distance between the quote candle chart and volume section     |
-| lines                    | `[]`                            | List of LineValue to be added to the chart                                  |
-| formatFn                 | No default                      | formatFn is applied to all values displayed on chart if provided            |
-| formatValueLabelWithK    | `false`                         | Format values with a "K" letter in the end if >= 1,000,000                  |
-| valueLabelBoxType        | `ValueLabelBoxType.roundedRect` | Tag type used on value label boxes                                          |
-| xAxisLabelFormatFn       | No default                      | Format function used to format x axis labels                                |
-| xAxisLabelCount          | `3`                             | Number of labels on the x axis                                              |
-| fullscreenGridLine       | `false`                         | Show grid lines on full screen                                              |
-| showXAxisLabel           | `false`                         | Shows labels on the x axis with vertical grid lines                         |
+## Configuration
+
+| Property                 | Default Value         | Description                                                        |
+|--------------------------|-----------------------|--------------------------------------------------------------------|
+| data                     | Required Field        | List of `CandleStickChartData`                                     |
+| enableGridLines          | Required Field        | Enable or disable grid lines                                       |
+| volumeProp               | `0.2`                 | Proportion of container to be given to volume bars                 |
+| gridLineStyle            | see constructor below | Grid line style configuration as `ChartGridLineStyle`              |
+| candleSticksStyle        | see constructor below | Chart style configuration as `CandleSticksStyle`                   |
+| lineValues               | `[]`                  | List of `LineValue` which are used to draw a value label           |
+| formatValueLabelFn       | `null`                | Function used to format value labels                               |
+| cursorPosition           | `null`                | `Offset` used for current cursor position                          |
+| infoBoxStyle             | lighTheme (see below) | Info box style configuration as `ChartInfoBoxStyle`                |
+| cursorStyle              | see constructor below | Cursor style configuration as `CandleChartCursorStyle`             |
+| chartEvents              | `[]`                  | List of `ChartEvent`                                               |
+| chartEventStyle          | see constructor below | Chart event style configuration as `ChartEventStyle`               |
+| loadingWidget            | `null`                | Widget used to show during chart loading                           |
 
 ## Example
-
 ```dart
 var last = data.last;
 var lineColor = last.close >= last.open ? Colors.green : Colors.red;
 CandleStickChart(
     data: data,
-    enableGridLines: true,
-    gridLineAmount: 5,
-    volumeProp: 0.2,
-    volumeSectionOffset: 22,
-    showCursorCircle: false,
-    cursorOffset: Offset(0, 50),
-    valueLabelBoxType: ValueLabelBoxType.arrowTag,
-    cursorLabelBoxColor: Colors.green,
-    showXAxisLabel: true,
-    formatValueLabelWithK: true,
     lines: [
         LineValue(
             value: lastData.close,
@@ -69,98 +45,232 @@ CandleStickChart(
     ],
 ),
 ```
-
-TODO: add screenshot with 70 data points
-
-> Candle size dynamically changes by amount of data
-
-TODO: add screneshort with 35 data points
-
 ### Full App Example
+Check example/example.dart
+## Classes and constructors
 ```dart
-import 'dart:math';
-
-import 'package:flutter/material.dart';
-import 'package:flutter_candlesticks_chart/flutter_candlesticks_chart.dart';
-
-void main() {
-  runApp(MyApp(
-    data: generateData()
-  ));
-}
-
-List<CandleStickChartData> generateData() {
-  var nGenerated = 70;
-  List<CandleStickChartData> generatedData = [
-    CandleStickChartData(
-      open: 1000000.0,
-      high: 1010000.0,
-      low: 990000.0,
-      close: 1005000.0,
-      volume: 1.0,
-      dateTime: DateTime.now().subtract(Duration(days: 70)),
-    ),
-  ];
-  var rng = Random();
-  for (var j = 0; j < nGenerated; j++) {
-    var lastData = generatedData.last;
-    var open = lastData.close;
-    var close = open*(1+ rng.nextDouble()*0.05 - 0.025);
-    generatedData.add(
-      CandleStickChartData(
-        open: open,
-        close: close,
-        high: close*(1 + rng.nextDouble()*0.015),
-        low: open*(1 - rng.nextDouble()*0.01),
-        volume: 0.1+rng.nextDouble()*2,
-        dateTime: DateTime.now().subtract(Duration(days: nGenerated - j + 1)),
-      )
-    );
-  }
-  generatedData.removeAt(0);
-  return generatedData;
-}
-
-class MyApp extends StatelessWidget {
-  MyApp({
+// CandleStickChart constructor
+class CandleStickChart extends StatefulWidget {
+  CandleStickChart({
+    Key key,
     @required this.data,
-  });
+    this.volumeProp = 0.2,
+    this.gridLineStyle = const ChartGridLineStyle(),
+    this.candleSticksStyle = const CandleSticksStyle(),
+    this.lineValues = const [],
+    this.formatValueLabelFn,
+    this.formatValueLabelWithK = false,
+    this.cursorPosition,
+    this.infoBoxStyle,
+    this.cursorStyle = const CandleChartCursorStyle(),
+    this.chartEvents = const [],
+    this.chartEventStyle = const ChartEventStyle(),
+    this.loadingWidget,
+  }) : super(key: key) {
+    assert(data != null);
+    if (gridLineStyle.fullscreenGridLine) {
+      assert(enableGridLines);
+    }
+    if (formatValueLabelFn != null) {
+      assert(!formatValueLabelWithK);
+    }
+  }
   final List<CandleStickChartData> data;
-  @override
-  Widget build(BuildContext context) {
-    var lastData = data.last;
-    var lineColor = lastData.close >= lastData.open ? Colors.green : Colors.red;
-    return (
-      MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Container(
-              height: 400.0,
-              child: CandleStickChart(
-                data: data,
-                enableGridLines: true,
-                gridLineAmount: 5,
-                volumeProp: 0.2,
-                volumeSectionOffset: 22,
-                showCursorCircle: false,
-                cursorOffset: Offset(0, 50),
-                valueLabelBoxType: ValueLabelBoxType.arrowTag,
-                cursorLabelBoxColor: Colors.green,
-                showXAxisLabel: true,
-                formatValueLabelWithK: true,
-                lines: [
-                  LineValue(
-                    value: lastData.close,
-                    lineColor: lineColor,
-                    dashed: true,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        )
-      )
+  final ChartGridLineStyle gridLineStyle;
+  final bool enableGridLines;
+  final CandleSticksStyle candleSticksStyle;
+  final double volumeProp;
+  final List<LineValue> lineValues;
+  final FormatFn formatValueLabelFn;
+  final bool formatValueLabelWithK;
+  final ChartInfoBoxStyle infoBoxStyle;
+  final Offset cursorPosition;
+  final CandleChartCursorStyle cursorStyle;
+  final List<ChartEvent> chartEvents;
+  final ChartEventStyle chartEventStyle;
+  final Widget loadingWidget;
+  //...
+}
+
+typedef FormatFn = String Function(double val);
+
+class CandleStickChartData {
+  CandleStickChartData({
+    @required this.open,
+    @required this.high,
+    @required this.low,
+    @required this.close,
+    this.dateTime,
+    this.volume,
+  });
+  double open;
+  double high;
+  double low;
+  double close;
+  DateTime dateTime;
+  double volume;
+  //...
+}
+
+class ChartGridLineStyle {
+  const ChartGridLineStyle({
+    this.gridLineColor = Colors.grey,
+    this.gridLineAmount = 5,
+    this.gridLineWidth = 0.5,
+    this.gridLineLabelColor = Colors.grey,
+    this.xAxisLabelCount = 3,
+    this.showXAxisLabels = false,
+    this.fullscreenGridLine = false,
+    this.enableGridLines = true,
+  });
+  final Color gridLineColor;
+  final int gridLineAmount;
+  final double gridLineWidth;
+  final Color gridLineLabelColor;
+  final int xAxisLabelCount;
+  final bool showXAxisLabels;
+  final bool fullscreenGridLine;
+  final bool enableGridLines;
+  //...
+}
+
+class CandleSticksStyle {
+  const CandleSticksStyle({
+    this.shadowLineWidth = 1.0,
+    this.labelPrefix = "\$",
+    this.increaseColor = Colors.green,
+    this.decreaseColor = Colors.red,
+    this.xAxisLabelHeight = 22,
+    this.valueLabelBoxType = ValueLabelBoxType.roundedRect,
+    this.valueMarginRatio = 0.15,
+  });
+
+  final double shadowLineWidth;
+  final String labelPrefix;
+  final Color increaseColor;
+  final Color decreaseColor;
+  final double xAxisLabelHeight;
+  final ValueLabelBoxType valueLabelBoxType; 
+  final double valueMarginRatio;
+  //...
+}
+
+class LineValue {
+  final double value;
+  final Color textColor;
+  final Color lineColor;
+  final bool dashed;
+  final double lineWidth;
+
+  LineValue({
+    @required this.value,
+    this.textColor = Colors.white,
+    this.lineColor = Colors.black,
+    this.dashed = false,
+    this.lineWidth = 0.5,
+  });
+  //...
+}
+
+class CandleChartI18N {
+  const CandleChartI18N({
+    this.open = 'Open',
+    this.close = 'Close',
+    this.high = 'High',
+    this.low = 'Low',
+    this.volume = 'Volume',
+  });
+
+  final String open;
+  final String close;
+  final String high;
+  final String low;
+  final String volume;
+  //...
+}
+
+class ChartInfoBoxThemes {
+  static ChartInfoBoxStyle getDarkTheme() {
+    return ChartInfoBoxStyle(
+      backgroundColor: Colors.black87,
+      backgroundOpacity: 0.8,
+      textColor: Colors.white,
+      borderColor: Colors.white,
+      textFontSize: 14,
+      borderWidth: 2.5,
+      fontWeight: FontWeight.normal,
+      formatValuesFn: (double val) {
+        return CandleStickChartValueFormat.formatPricesWithK(val);
+      },
+      dateFormatStr: 'MM/dd/yyyy',
+      infoBoxFingerOffset: 40,
+      margin: 1.25,
+      padding: 3,
+      chartI18N: CandleChartI18N(),
     );
   }
+
+  static ChartInfoBoxStyle getLightTheme() {
+    var layout = getDarkTheme();
+    layout
+      ..backgroundColor = Colors.white70
+      ..backgroundOpacity = 0.92
+      ..borderColor = Colors.black
+      ..textFontSize = 12
+      ..textColor = Colors.black;
+    return layout;
+  }
+}
+
+class CandleChartCursorStyle {
+  const CandleChartCursorStyle({
+    this.showCursorCircle = true,
+    this.cursorColor = Colors.black,
+    this.cursorLabelBoxColor = Colors.black,
+    this.cursorTextColor = Colors.white,
+    this.cursorJumpToCandleCenter = false,
+    this.cursorLineWidth = 0.5,
+    this.cursorOffset = const Offset(0, 50),
+    this.cursorLineDashed = false,
+    this.cursorXAxisFormatString = 'MM/dd/yyyy',
+  });
+
+  final bool showCursorCircle;
+  final Color cursorColor;
+  final Color cursorTextColor;
+  final Color cursorLabelBoxColor;
+  final double cursorLineWidth;
+  final bool cursorLineDashed;
+  final bool cursorJumpToCandleCenter;
+  final String cursorXAxisFormatString;
+  final Offset cursorOffset;
+  //...
+}
+
+class ChartEvent {
+  ChartEvent({
+    @required this.dateTime,
+    @required this.circleText,
+    @required this.fn,
+  });
+
+  final DateTime dateTime;
+  final String circleText;
+  final void Function(ChartEvent eg) fn;
+  //...
+}
+
+class ChartEventStyle {
+  const ChartEventStyle({
+    this.textStyle,
+    this.circleRadius,
+    this.circlePaint,
+    this.circleBorderPaint,
+  });
+  final TextStyle textStyle;
+  final double circleRadius;
+  final Paint circlePaint;
+  final Paint circleBorderPaint;
+  //...
 }
 ```
