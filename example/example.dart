@@ -82,16 +82,18 @@ List<CandleStickChartData> generateData() {
     var lastData = generatedData.last;
     var open = lastData.close;
     var close = open*(1+ rng.nextDouble()*0.05 - 0.025);
-    generatedData.add(
-      CandleStickChartData(
-        open: open,
-        close: close,
-        high: close*(1 + rng.nextDouble()*0.015),
-        low: open*(1 - rng.nextDouble()*0.01),
-        volume: lastData.volume*(1+ rng.nextDouble()*0.4 - 0.2),
-        dateTime: endDate.subtract(Duration(days: nGenerated - j + 1)),
-      )
-    );
+    generatedData.add(CandleStickChartData(
+      open: open,
+      close: close,
+      high: open < close
+          ? (close * (1 + rng.nextDouble() * 0.015))
+          : (open * (1 + rng.nextDouble() * 0.015)),
+      low: open < close
+          ? (open * (1 - rng.nextDouble() * 0.01))
+          : (close * (1 - rng.nextDouble() * 0.01)),
+      volume: lastData.volume * (1 + rng.nextDouble() * 0.4 - 0.2),
+      dateTime: endDate.subtract(Duration(days: nGenerated - j + 1)),
+    ));
   }
   generatedData.removeAt(0);
   return generatedData;
